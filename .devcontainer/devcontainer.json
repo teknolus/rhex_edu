@@ -15,8 +15,7 @@
     },
 
     "runArgs": [
-        "--net=host",
-        "--gpus", "all"
+        "--net=host"
     ],
 
     "mounts": [
