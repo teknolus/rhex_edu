@@ -1,18 +1,20 @@
 {
     "name": "RHex ROS2 Development Container",
     "build": {
-        "dockerfile": "Dockerfile"
+        "dockerfile": "Dockerfile",
+        "context": "../.."
     },
 
-    "privileged": true,
-    "workspaceMount": "source=${localWorkspaceFolder},target=/home/rhex/mnt,type=bind,consistency=cached",
-    "workspaceFolder": "/home/rhex/mnt/rhex_ws",
     "containerEnv": {
         "DISPLAY": "${env:DISPLAY}",
         "NVIDIA_VISIBLE_DEVICES": "all",
         "NVIDIA_DRIVER_CAPABILITIES": "all"
     },
 
+    "workspaceMount": "source=${localWorkspaceFolder},target=/home/rhex/mnt,type=bind,consistency=cached",
+    "workspaceFolder": "/home/rhex/mnt/rhex_ws",
+
+    "privileged": true,
     "runArgs": [
         "--net=host",
         "--gpus", "all"
@@ -36,5 +38,7 @@
                 "GitHub.copilot"
             ]
         }
-    }
+    },
+
+    "postCreateCommand": "chmod +x ../scripts/* && ../scripts/build_workspace.sh && echo 'export PATH=$PATH:/home/rhex/mnt/scripts/' >> ~/.bashrc"
 }

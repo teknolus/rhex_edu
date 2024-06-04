@@ -19,10 +19,6 @@ RUN apt-get update -y && \
 
 RUN pip3 install gdown
 
-# Clean up APT cache to reduce the image size
-RUN apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
 # Add user, so the files created in the container are not owned by root
 # Following operations needs 'sudo' to be installed
 
@@ -52,3 +48,8 @@ ENV TRHEX_LINUX_DIR=/home/${USERNAME}/robot/TRHex.linux
 ENV RHEX_API_DIR=/home/${USERNAME}/robot/rhex-api
 
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+RUN echo "source /usr/share/gazebo/setup.sh" >> ~/.bashrc
+
+# Clean up APT cache to reduce the image size
+RUN sudo apt-get clean && \
+    sudo rm -rf /var/lib/apt/lists/*
