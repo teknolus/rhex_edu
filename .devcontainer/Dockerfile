@@ -52,4 +52,3 @@ ENV TRHEX_LINUX_DIR=/home/${USERNAME}/robot/TRHex.linux
 ENV RHEX_API_DIR=/home/${USERNAME}/robot/rhex-api
 
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
-RUN echo "source /usr/share/gazebo/setup.sh" >> ~/.bashrc

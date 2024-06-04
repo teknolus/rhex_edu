@@ -1,13 +1,12 @@
 {
     "name": "RHex ROS2 Development Container",
     "build": {
-        "dockerfile": "Dockerfile",
-        "context": "../.."
+        "dockerfile": "Dockerfile"
     },
 
     "privileged": true,
     "workspaceMount": "source=${localWorkspaceFolder},target=/home/rhex/mnt,type=bind,consistency=cached",
-    "workspaceFolder": "/home/rhex/mnt/workspace",
+    "workspaceFolder": "/home/rhex/mnt/rhex_ws",
     "containerEnv": {
         "DISPLAY": "${env:DISPLAY}",
         "NVIDIA_VISIBLE_DEVICES": "all",
@@ -33,10 +32,9 @@
                 "ms-vscode.cpptools",
                 "ms-vscode.cpptools-extension-pack",
                 "donjayamanne.python-extension-pack",
-                "ms-iot.vscode-ros"
+                "ms-iot.vscode-ros",
+                "GitHub.copilot"
             ]
         }
-    },
-
-    "postCreateCommand": "../util/pc_container_scripts/tbt_otonom_build_install.sh;echo 'source /home/tbt-otonom/mnt/ws/install/setup.bash;export PATH=$PATH:/home/tbt-otonom/mnt/util/pc_container_scripts/' >> /home/tbt-otonom/.bashrc"
+    }
 }
