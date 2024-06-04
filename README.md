@@ -47,8 +47,8 @@ Step-by-step instructions for setting up the development environment is provided
 2. **Running the Container:**
 - **Open the Repository:** Open the repository with VS Code by running `code /home/repos/rhex_edu` command on your terminal. How to know whether you are in the correct folder is VS Code will notifiy you that it detected a devcontainer configuration file and will ask you to open the repository in a container on the right below corner. Then proceed to the next step.
 - **For non-Nvidia GPUs:** If you don't have a Nvidia GPU or your computer has CPU embedded graphics card on your computer check **README.md** file in the **.devcontainer** directory for necessary changes.
-- **Rebuild/Reopen Container:** After cloning the repository and finishing the installation of Docker and VS Code open your VS Code and open the ***rhex_edu*** folder. Then press Ctrl+Shift+P select **Rebuild/Reopen Container**. This will build the Docker environment that will be accessible from VS Code. First time building the container will take a long time however, after building once you will use Ctrl+Shift+P then **Reopen Container** to open the container since it was built previously. 
-- **Checking Installation:** Try running gazebo by opening a terminal inside VS Code then typing `rviz2` in that terminal and running it, you should see the GUI open.
+- **Rebuild/Reopen Container:** After cloning the repository and finishing the installation of Docker and VS Code, open the ***rhex_edu*** folder. Then press Ctrl+Shift+P select **Rebuild/Reopen Container**. This will build the Docker environment that will be accessible from VS Code. First time building the container will take a long time however, after building once you will use Ctrl+Shift+P then **Reopen Container** to open the container since it was built previously. 
+- **Checking Installation:** Try running rviz2 by opening a terminal inside VS Code then typing `rviz2` in that terminal and running it, you should see the GUI open.
 3. **Install Dependencies:** 
 - Run `rosdep install --from-paths src --ignore-src -r -y` command inside the VS Code terminal (same terminal that you run `rviz2` command). All dependencies for ROS2 packages will be installed inside the container.
 - After that run `colcon build --symlink-install` command inside **rhex_ws** folder which should only have the **src** folder in it. For any problems that might occur check [Troubleshooting](#troubleshooting) Section.
@@ -64,7 +64,7 @@ With the knowledge above you can modify files, or create your own to enhance you
 
 ## Usage
 ### Building The Workspace
-- Be careful! Do not to run the `colcon build` command in the **src** directory of the workspace. Always run it outside of the **rhex_ws** directory. Which should have **src** folder in it. You can check it by running `ls` command in the terminal.
+- Be careful! Do not to run the `colcon build` command in the **src** directory of the workspace. Always run it inside of the **rhex_ws** directory. Which should have **src** folder in it. You can check it by running `ls` command in the terminal.
 - To build the workspace run `colcon build --symlink-install` command inside the **rhex_ws** directory. After adding new files to the folders you should run this command to build the workspace. `--symlink-install` is used to create symbolic links to the files instead of copying them which will allow us to change the file content and see the changes without rebuilding the workspace.
 ---
 After building the workspace you need to run `source /home/rhex/mnt/rhex_ws/install/setup.bash` to activate your workspace. Or you can add this line to the `~/.bashrc`, so that workspace will be automatically activated when a new terminal is opened. To achieve this run the following code in the terminal:
