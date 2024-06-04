@@ -7,7 +7,7 @@
 
     "privileged": true,
     "workspaceMount": "source=${localWorkspaceFolder},target=/home/rhex/mnt,type=bind,consistency=cached",
-    "workspaceFolder": "/home/rhex/mnt/workspace",
+    "workspaceFolder": "/home/rhex/mnt/rhex_ws",
     "containerEnv": {
         "DISPLAY": "${env:DISPLAY}",
         "NVIDIA_VISIBLE_DEVICES": "all",
