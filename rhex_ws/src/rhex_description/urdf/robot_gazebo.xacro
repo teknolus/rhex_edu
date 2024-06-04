@@ -21,7 +21,7 @@
 
     <gazebo>
         <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
-            <parameters>$(find tbt_otonom_sim)/config/ros_control.yaml</parameters>
+            <parameters>$(find rhex_description)/config/ros_control.yaml</parameters>
         </plugin>
     </gazebo>
 
