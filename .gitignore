@@ -9,3 +9,6 @@ __pycache__/
 
 # VSCode files
 .vscode/
+
+# Robot Controller files
+rhex_ws/src/rhex_control/robot/
