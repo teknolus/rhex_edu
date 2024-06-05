@@ -16,7 +16,8 @@
 
     "privileged": true,
     "runArgs": [
-        "--net=host"
+        "--net=host",
+        "--gpus", "all"
     ],
 
     "mounts": [
@@ -33,8 +34,7 @@
                 "ms-vscode.cpptools",
                 "ms-vscode.cpptools-extension-pack",
                 "donjayamanne.python-extension-pack",
-                "ms-iot.vscode-ros",
-                "GitHub.copilot"
+                "ms-iot.vscode-ros"
             ]
         }
     },
