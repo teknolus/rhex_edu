@@ -39,6 +39,14 @@ RUN groupadd --gid $USER_GID $USERNAME \
 USER $USERNAME
 
 WORKDIR /home/${USERNAME}
+RUN gdown https://drive.google.com/uc?id=1mtr-yEbGLTXMa2HJkLwIvsZYEt_7Wdnx
+RUN tar -xzf robot_x64.tar.gz && \
+    rm robot_x64.tar.gz
+RUN mv robot_x64/ robot/
+
+ENV ROBOMETU_LINUX_DIR=/home/${USERNAME}/robot/RoboMETU.linux
+ENV TRHEX_LINUX_DIR=/home/${USERNAME}/robot/TRHex.linux
+ENV RHEX_API_DIR=/home/${USERNAME}/robot/rhex-api
 
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 RUN echo "source /usr/share/gazebo/setup.sh" >> ~/.bashrc

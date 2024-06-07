@@ -39,5 +39,5 @@
         }
     },
 
-    "postCreateCommand": "chmod +x ../scripts/* && ../scripts/build_workspace.sh && ../scripts/robot_controller.sh && echo 'export PATH=$PATH:/home/rhex/mnt/scripts/' >> ~/.bashrc"
+    "postCreateCommand": "chmod +x ../scripts/* && ../scripts/build_workspace.sh && echo 'export PATH=$PATH:/home/rhex/mnt/scripts/' >> ~/.bashrc"
 }
