@@ -118,7 +118,7 @@ echo "source ~/ros2_ws/install/setup.bash" >> ~/.bashrc
 ```
 
 ## ROS2 Node
-ROS2 Node is subpart of the application and has a single purpose. Applications will contain many nodes and these nodes will be put in the packages. Then nodes will communicate with each other using ROS Topics, services and parameters. All nodes names must be unique do not give the same name.
+ROS2 Node is subpart of the application and has a single purpose. Applications will contain many nodes and these nodes will be put in the packages. Then nodes will communicate with each other. Nodes communicate with each other using ROS Topics, services and parameters. All nodes names must be unique do not give the same name.
 
 To create a node you need to write a Python or C++ file that contains the node. This file will contain the necessary code to create the node and make it do its job.
 
