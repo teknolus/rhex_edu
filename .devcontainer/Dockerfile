@@ -15,7 +15,8 @@ RUN apt-get update -y && \
         sudo \
         git \
         cmake \
-        python3-pip
+        python3-pip \
+        ros-humble-gazebo-* -y
 
 RUN pip3 install gdown
 

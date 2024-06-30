@@ -34,8 +34,7 @@
                 "ms-vscode.cpptools",
                 "ms-vscode.cpptools-extension-pack",
                 "donjayamanne.python-extension-pack",
-                "ms-iot.vscode-ros",
-                "GitHub.copilot"
+                "ms-iot.vscode-ros"
             ]
         }
     },

@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 
-sudo apt update
-rosdep update
-rosdep install -i --from-path src --rosdistro humble -y
+# Need to make sure that the script is executable
+chmod +x /home/rhex/mnt/rhex_ws/src/rhex_control/scripts/controller_server_network.py
 
-# Clean up APT cache to reduce the image size
-sudo apt-get clean
-sudo rm -rf /var/lib/apt/lists/*
-
-colcon build --symlink-install --packages-select rhex_description rhex_gazebo
+colcon build --symlink-install --packages-select rhex_description rhex_gazebo rhex_control
 source install/setup.bash
 
 echo "source /home/rhex/mnt/rhex_ws/install/setup.bash" >> ~/.bashrc
