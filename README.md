@@ -108,8 +108,13 @@ git push -u origin dev/<your-name>
 
 
 ### Running The Simulation
-- To run the simulation try running `ros2 launch rhex_gazebo start_sim.launch.py`. Which will launch all the necessary ROS nodes.
-- More will be added...
+To run the simulation and control the robot, we need to run four different commands in four different VS Code terminals.
+- `ros2 launch rhex_gazebo start_sim.launch.py` Runs the simulation, summons RHex and prepares ROS nodes.
+- `ros2 launch rhex_control start_controller_server.launch.py` Listens to the RHex controller and transfers the commands to Gazebo sim (Yes, it is not the controller even though it is called that).
+- `start_rhex_supervisor.sh` Starts the actual controller of RHex
+- `start_fltk_gui.sh` Starts GUI. One can calibrate the robot and start to operate using buttons under `Turbo` section. You can explore the GUI, it is an old one.
+
+For the last two commands, we won't make an impromevent since they are irrelevant for our work. Instead we want to write our own simulation controller and GUI.  
 
 ### Explore and Modify
 - **rhex_gazebo** directory contains gazebo related files and worlds check README.md inside that folder.
