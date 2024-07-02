@@ -14,7 +14,7 @@ def generate_launch_description():
         cmd=['/home/rhex/mnt/scripts/start_rhex_supervisor.sh'],
         name='supervisor'
     )
-    
+
     declare_world_name = DeclareLaunchArgument(
         name="world_name",
         default_value="empty.world",
@@ -31,7 +31,7 @@ def generate_launch_description():
             'world_name': LaunchConfiguration('world_name')
         }.items()
     )
-    
+
     start_launch_controller_server = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(
             get_package_share_directory('rhex_control'),
@@ -39,15 +39,15 @@ def generate_launch_description():
             'start_controller_server.launch.py'
         ))
     )
-    
+
     start_script_gui = ExecuteProcess(
         cmd=['/home/rhex/mnt/scripts/start_fltk_gui.sh'],
         name='fltk_gui'
     )
-    
+
     return LaunchDescription([
-        declare_world_name, 
-        
+        declare_world_name,
+
         start_script_supervisor,
         start_launch_simulation,
         start_launch_controller_server,
