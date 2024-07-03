@@ -11,10 +11,10 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 install(
-  PROGRAMS
-    scripts/controller_server_network.py
-  DESTINATION
-    lib/${PROJECT_NAME}
+    PROGRAMS
+        scripts/controller_server_network.py
+    DESTINATION
+        lib/${PROJECT_NAME}
 )
 
 install(
