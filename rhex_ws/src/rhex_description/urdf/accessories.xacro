@@ -1,14 +1,40 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
 
+    <!-- Define robot constants -->
+    <xacro:property name="base_width" value="0.2"/>
+    <xacro:property name="base_length" value="0.554"/>
+    <xacro:property name="base_height" value="0.112"/>
+    <xacro:property name="upper_case_z_position" value="0.058"/>
+    <xacro:property name="imu_y_position" value="-0.005"/>
+    <xacro:property name="imu_z_position" value="${base_height/2 + 0.0325}"/>
+    <xacro:property name="depth_cam_x_position" value="${base_length/2 - 0.01}"/>
+    <xacro:property name="depth_cam_y_position" value="0.0055"/>
+    <xacro:property name="depth_cam_z_position" value="${base_height + 0.0035}"/>
+
     <!-- IMU (Internal Measurement Unit) -->
     <link name="imu_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.015 0.115 0.020"/>
+            </geometry>
+        </visual>
+    
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <box size="0.015 0.115 0.020"/>
+            </geometry>
+        </collision>
+
         <xacro:box_inertia mass="0.001" width="0.01" height="0.01" length="0.01">
             <origin xyz="0 0 0" rpy="0 0 0" />
         </xacro:box_inertia>
     </link>
 
     <joint name="imu_joint" type="fixed">
+        <origin xyz="${depth_cam_x_position} ${imu_y_position} ${imu_z_position}" rpy="0 0 0"/>
         <parent link="base_link" />
         <child link="imu_link" />
     </joint>
@@ -107,7 +133,7 @@
     <joint name="lidar_joint" type="fixed">
         <parent link="base_link"/>
         <child link="lidar_link"/>
-        <origin xyz="0 0 ${base_height/2+0.028}" rpy="0 0 0"/>
+        <origin xyz="0 0 ${2*upper_case_z_position + base_height/2}" rpy="0 0 0"/>
     </joint>
       
     <gazebo reference="lidar_link">
@@ -151,18 +177,18 @@
         <visual>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-                <box size="0.015 0.13 0.022"/>
+                <box size="0.015 0.0867 0.022"/>
             </geometry>
         </visual>
     
         <collision>
             <origin xyz="0 0 0" rpy="0 0 0"/>
             <geometry>
-                <box size="0.015 0.13 0.022"/>
+                <box size="0.015 0.0867 0.022"/>
             </geometry>
         </collision>
     
-        <xacro:box_inertia mass="0.02" width="0.015" height="0.022" length="0.13">
+        <xacro:box_inertia mass="0.02" width="0.015" height="0.022" length="0.0867">
             <origin xyz="0 0 0" rpy="0 0 0"/>
         </xacro:box_inertia>
     </link>
@@ -170,7 +196,7 @@
     <joint name="camera_joint" type="fixed">
         <parent link="base_link"/>
         <child link="camera_link"/>
-        <origin xyz="${base_length/2} 0 0" rpy="0 0 0"/>
+        <origin xyz="${depth_cam_x_position} ${depth_cam_y_position} ${depth_cam_z_position}" rpy="0 0 0"/>
     </joint>
     
     <link name="camera_depth_frame"/>
