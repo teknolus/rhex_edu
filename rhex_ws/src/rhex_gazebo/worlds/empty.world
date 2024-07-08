@@ -1,18 +1,16 @@
-<?xml version="1.0"?>
 <sdf version='1.7'>
   <world name='default'>
-    <plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+    <plugin name='gazebo_ros_state' filename='libgazebo_ros_state.so'>
       <ros>
         <namespace>/gazebo</namespace>
       </ros>
       <update_rate>1000</update_rate>
     </plugin>
-    
     <light name='sun' type='directional'>
       <cast_shadows>1</cast_shadows>
       <pose>0 0 10 0 -0 0</pose>
-      <diffuse>1.0 1.0 1.0 1</diffuse>
-      <specular>1.0 1.0 1.0 1</specular>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>1 1 1 1</specular>
       <attenuation>
         <range>1000</range>
         <constant>0.9</constant>
@@ -98,10 +96,10 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
     <state world_name='default'>
-      <sim_time>53 952000000</sim_time>
-      <real_time>35 574416715</real_time>
-      <wall_time>1690879884 614514134</wall_time>
-      <iterations>35400</iterations>
+      <sim_time>629 665000000</sim_time>
+      <real_time>78 918115791</real_time>
+      <wall_time>1720436745 174722214</wall_time>
+      <iterations>78434</iterations>
       <model name='ground_plane'>
         <pose>0 0 0 0 -0 0</pose>
         <scale>1 1 1</scale>
@@ -112,16 +110,851 @@
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
+      <model name='person_standing'>
+        <pose>6.9867 0.038812 0 0 1e-06 -1.54474</pose>
+        <scale>1 1 1</scale>
+        <link name='link'>
+          <pose>6.9867 0.038812 0 0 1e-06 -1.54474</pose>
+          <velocity>0 0 0 0 -0 0</velocity>
+          <acceleration>-0.247813 2.11163 1.08664 -2.1271 -0.343395 0.011703</acceleration>
+          <wrench>-19.825 168.931 86.9308 0 -0 0</wrench>
+        </link>
+      </model>
+      <model name='rhex'>
+        <pose>-0.054107 0.008804 0.056008 0 2.2e-05 0.016359</pose>
+        <scale>1 1 1</scale>
+        <link name='base_link'>
+          <pose>-0.054107 0.008804 0.056008 0 2.2e-05 0.016359</pose>
+          <velocity>0.001236 7e-05 -0.003488 -0.000558 0.022045 0.000233</velocity>
+          <acceleration>1.12778 0.066604 -3.85283 1.14225 0.987266 0.233543</acceleration>
+          <wrench>14.2619 0.84228 -48.7229 0 -0 0</wrench>
+        </link>
+        <link name='front_left_link'>
+          <pose>0.13384 0.135395 0.056015 -3.1415 -1.27981 -3.12532</pose>
+          <velocity>-0.002 0.000235 -0.00215 -0.004806 -0.035727 0.000468</velocity>
+          <acceleration>-2.9965 0.374935 0.824573 -2.22683 -0.437537 -2.80589</acceleration>
+          <wrench>-0.149825 0.018747 0.041229 0 -0 0</wrench>
+        </link>
+        <link name='front_right_link'>
+          <pose>0.137884 -0.111572 0.05601 -3.14155 -1.27975 -3.12527</pose>
+          <velocity>-0.002072 0.000143 -0.002291 -0.003971 -0.036988 0.001063</velocity>
+          <acceleration>-3.09818 0.30979 0.771632 -2.96791 -1.47138 1.00636</acceleration>
+          <wrench>-0.154909 0.01549 0.038582 0 -0 0</wrench>
+        </link>
+        <link name='mid_left_link'>
+          <pose>-0.056763 0.170782 0.056019 -3.14151 -1.27987 -3.12531</pose>
+          <velocity>-0.000657 0.000191 -0.000581 -0.001944 -0.011794 -0.001106</velocity>
+          <acceleration>-1.10228 0.145458 0.140778 0.245555 -1.5308 -1.60215</acceleration>
+          <wrench>-0.055114 0.007273 0.007039 0 -0 0</wrench>
+        </link>
+        <link name='mid_right_link'>
+          <pose>-0.051464 -0.153174 0.056021 -3.14152 -1.27986 -3.1253</pose>
+          <velocity>-0.000594 0.0001 -0.000424 -0.002645 -0.010614 0.000646</velocity>
+          <acceleration>-1.01427 0.204295 0.194479 -1.35235 -0.367806 -1.28231</acceleration>
+          <wrench>-0.050714 0.010215 0.009724 0 -0 0</wrench>
+        </link>
+        <link name='rear_left_link'>
+          <pose>-0.246107 0.129179 0.056023 -3.14154 -1.27988 -3.12528</pose>
+          <velocity>0.000914 5.3e-05 0.001426 -0.003799 0.016153 0.002134</velocity>
+          <acceleration>1.10643 0.298164 -0.420354 3.0895 1.25097 -1.02241</acceleration>
+          <wrench>0.055321 0.014908 -0.021018 0 -0 0</wrench>
+        </link>
+        <link name='rear_right_link'>
+          <pose>-0.242069 -0.117788 0.056025 -3.14155 -1.27992 -3.12527</pose>
+          <velocity>0.000705 -4.5e-05 0.00109 0.000765 0.012572 2.3e-05</velocity>
+          <acceleration>0.817839 -0.066257 -0.48554 -0.34269 -0.953823 -2.56102</acceleration>
+          <wrench>0.040892 -0.003313 -0.024277 0 -0 0</wrench>
+        </link>
+      </model>
       <light name='sun'>
         <pose>0 0 10 0 -0 0</pose>
       </light>
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose>1.74201 1.95861 1.04747 0 0.219643 -2.33899</pose>
+        <pose>3.06285 -8.24019 7.91651 0 0.783644 1.62182</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>
     </gui>
+    <model name='rhex'>
+      <link name='base_link'>
+        <inertial>
+          <pose>0.000438 0 0.00083 0 -0 0</pose>
+          <mass>12.646</mass>
+          <inertia>
+            <ixx>0.0557489</ixx>
+            <ixy>0</ixy>
+            <ixz>4.59987e-06</ixz>
+            <iyy>0.335291</iyy>
+            <iyz>0</iyz>
+            <izz>0.363093</izz>
+          </inertia>
+        </inertial>
+        <collision name='base_link_collision'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_chassis.dae</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <collision name='base_link_fixed_joint_lump__camera_link_collision_1'>
+          <pose>0.277 0 0 0 -0 0</pose>
+          <geometry>
+            <box>
+              <size>0.015 0.13 0.022</size>
+            </box>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <collision name='base_link_fixed_joint_lump__lidar_link_collision_2'>
+          <pose>0 0 0.084 0 -0 0</pose>
+          <geometry>
+            <cylinder>
+              <length>0.056</length>
+              <radius>0.0508</radius>
+            </cylinder>
+          </geometry>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <friction>
+              <ode/>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='base_link_visual'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_chassis.dae</uri>
+            </mesh>
+          </geometry>
+          <material>
+            <script>
+              <name>Gazebo/Red</name>
+              <uri>file://media/materials/scripts/gazebo.material</uri>
+            </script>
+          </material>
+        </visual>
+        <visual name='base_link_fixed_joint_lump__camera_link_visual_1'>
+          <pose>0.277 0 0 0 -0 0</pose>
+          <geometry>
+            <box>
+              <size>0.015 0.13 0.022</size>
+            </box>
+          </geometry>
+        </visual>
+        <visual name='base_link_fixed_joint_lump__lidar_link_visual_2'>
+          <pose>0 0 0.084 0 -0 0</pose>
+          <geometry>
+            <cylinder>
+              <length>0.056</length>
+              <radius>0.0508</radius>
+            </cylinder>
+          </geometry>
+        </visual>
+        <sensor name='depth_camera' type='depth'>
+          <visualize>1</visualize>
+          <update_rate>30</update_rate>
+          <camera name='camera'>
+            <horizontal_fov>1.0472</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>480</height>
+              <format>B8G8R8</format>
+            </image>
+            <clip>
+              <near>0.05</near>
+              <far>30</far>
+            </clip>
+            <noise>
+              <type>gaussian</type>
+              <mean>0</mean>
+              <stddev>0.007</stddev>
+            </noise>
+          </camera>
+          <plugin name='depth_camera_controller' filename='libgazebo_ros_camera.so'>
+            <update_rate>0.0</update_rate>
+            <frame_name>camera_depth_frame</frame_name>
+            <min_depth>0.2</min_depth>
+            <max_depth>4.0</max_depth>
+          </plugin>
+          <pose>0.277 0 0 0 -0 0</pose>
+        </sensor>
+        <sensor name='imu_sensor' type='imu'>
+          <plugin name='imu_plugin' filename='libgazebo_ros_imu_sensor.so'>
+            <ros>
+              <namespace>/imu</namespace>
+              <remapping>~/out:=data</remapping>
+            </ros>
+            <initial_orientation_as_reference>0</initial_orientation_as_reference>
+          </plugin>
+          <always_on>1</always_on>
+          <update_rate>1000</update_rate>
+          <visualize>1</visualize>
+          <imu>
+            <angular_velocity>
+              <x>
+                <noise type='gaussian'>
+                  <mean>0</mean>
+                  <stddev>0.0002</stddev>
+                  <bias_mean>7.5e-06</bias_mean>
+                  <bias_stddev>8e-07</bias_stddev>
+                </noise>
+              </x>
+              <y>
+                <noise type='gaussian'>
+                  <mean>0</mean>
+                  <stddev>0.0002</stddev>
+                  <bias_mean>7.5e-06</bias_mean>
+                  <bias_stddev>8e-07</bias_stddev>
+                </noise>
+              </y>
+              <z>
+                <noise type='gaussian'>
+                  <mean>0</mean>
+                  <stddev>0.0002</stddev>
+                  <bias_mean>7.5e-06</bias_mean>
+                  <bias_stddev>8e-07</bias_stddev>
+                </noise>
+              </z>
+            </angular_velocity>
+            <linear_acceleration>
+              <x>
+                <noise type='gaussian'>
+                  <mean>0</mean>
+                  <stddev>0.017</stddev>
+                  <bias_mean>0.1</bias_mean>
+                  <bias_stddev>0.001</bias_stddev>
+                </noise>
+              </x>
+              <y>
+                <noise type='gaussian'>
+                  <mean>0</mean>
+                  <stddev>0.017</stddev>
+                  <bias_mean>0.1</bias_mean>
+                  <bias_stddev>0.001</bias_stddev>
+                </noise>
+              </y>
+              <z>
+                <noise type='gaussian'>
+                  <mean>0</mean>
+                  <stddev>0.017</stddev>
+                  <bias_mean>0.1</bias_mean>
+                  <bias_stddev>0.001</bias_stddev>
+                </noise>
+              </z>
+            </linear_acceleration>
+          </imu>
+          <pose>0 0 0 0 -0 0</pose>
+        </sensor>
+        <sensor name='lidar' type='ray'>
+          <always_on>1</always_on>
+          <visualize>0</visualize>
+          <update_rate>5</update_rate>
+          <ray>
+            <scan>
+              <horizontal>
+                <samples>360</samples>
+                <resolution>1</resolution>
+                <min_angle>0</min_angle>
+                <max_angle>6.28</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>1</samples>
+                <min_angle>0</min_angle>
+                <max_angle>0</max_angle>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.12</min>
+              <max>3.5</max>
+              <resolution>0.015</resolution>
+            </range>
+            <noise>
+              <type>gaussian</type>
+              <mean>0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </ray>
+          <plugin name='scan' filename='libgazebo_ros_ray_sensor.so'>
+            <ros>
+              <remapping>~/out:=scan</remapping>
+            </ros>
+            <output_type>sensor_msgs/LaserScan</output_type>
+            <frame_name>lidar_link</frame_name>
+          </plugin>
+          <pose>0 0 0.084 0 -0 0</pose>
+        </sensor>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <joint name='front_left_joint' type='revolute'>
+        <pose relative_to='base_link'>0.19 0.1235 0 0 -0 0</pose>
+        <parent>base_link</parent>
+        <child>front_left_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e+16</lower>
+            <upper>1e+16</upper>
+          </limit>
+          <dynamics>
+            <damping>0.5</damping>
+            <friction>0</friction>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='front_left_link'>
+        <pose relative_to='front_left_joint'>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 -0.08 0 -0 0</pose>
+          <mass>0.05</mass>
+          <inertia>
+            <ixx>0.000130865</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.000166666</iyy>
+            <iyz>0</iyz>
+            <izz>4.40694e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='front_left_link_collision'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode>
+                <kp>1e+12</kp>
+                <kd>100</kd>
+                <min_depth>0.05</min_depth>
+              </ode>
+            </contact>
+            <friction>
+              <ode>
+                <mu>50</mu>
+                <mu2>50</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='front_left_link_visual'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <joint name='front_right_joint' type='revolute'>
+        <pose relative_to='base_link'>0.19 -0.1235 0 0 -0 0</pose>
+        <parent>base_link</parent>
+        <child>front_right_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e+16</lower>
+            <upper>1e+16</upper>
+          </limit>
+          <dynamics>
+            <damping>0.5</damping>
+            <friction>0</friction>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='front_right_link'>
+        <pose relative_to='front_right_joint'>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 -0.08 0 -0 0</pose>
+          <mass>0.05</mass>
+          <inertia>
+            <ixx>0.000130865</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.000166666</iyy>
+            <iyz>0</iyz>
+            <izz>4.40694e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='front_right_link_collision'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode>
+                <kp>1e+12</kp>
+                <kd>100</kd>
+                <min_depth>0.05</min_depth>
+              </ode>
+            </contact>
+            <friction>
+              <ode>
+                <mu>50</mu>
+                <mu2>50</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='front_right_link_visual'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <joint name='mid_left_joint' type='revolute'>
+        <pose relative_to='base_link'>0 0.162 0 0 -0 0</pose>
+        <parent>base_link</parent>
+        <child>mid_left_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e+16</lower>
+            <upper>1e+16</upper>
+          </limit>
+          <dynamics>
+            <damping>0.5</damping>
+            <friction>0</friction>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='mid_left_link'>
+        <pose relative_to='mid_left_joint'>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 -0.08 0 -0 0</pose>
+          <mass>0.05</mass>
+          <inertia>
+            <ixx>0.000130865</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.000166666</iyy>
+            <iyz>0</iyz>
+            <izz>4.40694e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='mid_left_link_collision'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode>
+                <kp>1e+12</kp>
+                <kd>100</kd>
+                <min_depth>0.05</min_depth>
+              </ode>
+            </contact>
+            <friction>
+              <ode>
+                <mu>50</mu>
+                <mu2>50</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='mid_left_link_visual'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <joint name='mid_right_joint' type='revolute'>
+        <pose relative_to='base_link'>0 -0.162 0 0 -0 0</pose>
+        <parent>base_link</parent>
+        <child>mid_right_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e+16</lower>
+            <upper>1e+16</upper>
+          </limit>
+          <dynamics>
+            <damping>0.5</damping>
+            <friction>0</friction>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='mid_right_link'>
+        <pose relative_to='mid_right_joint'>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 -0.08 0 -0 0</pose>
+          <mass>0.05</mass>
+          <inertia>
+            <ixx>0.000130865</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.000166666</iyy>
+            <iyz>0</iyz>
+            <izz>4.40694e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='mid_right_link_collision'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode>
+                <kp>1e+12</kp>
+                <kd>100</kd>
+                <min_depth>0.05</min_depth>
+              </ode>
+            </contact>
+            <friction>
+              <ode>
+                <mu>50</mu>
+                <mu2>50</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='mid_right_link_visual'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <joint name='rear_left_joint' type='revolute'>
+        <pose relative_to='base_link'>-0.19 0.1235 0 0 -0 0</pose>
+        <parent>base_link</parent>
+        <child>rear_left_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e+16</lower>
+            <upper>1e+16</upper>
+          </limit>
+          <dynamics>
+            <damping>0.5</damping>
+            <friction>0</friction>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='rear_left_link'>
+        <pose relative_to='rear_left_joint'>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 -0.08 0 -0 0</pose>
+          <mass>0.05</mass>
+          <inertia>
+            <ixx>0.000130865</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.000166666</iyy>
+            <iyz>0</iyz>
+            <izz>4.40694e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='rear_left_link_collision'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode>
+                <kp>1e+12</kp>
+                <kd>100</kd>
+                <min_depth>0.05</min_depth>
+              </ode>
+            </contact>
+            <friction>
+              <ode>
+                <mu>50</mu>
+                <mu2>50</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='rear_left_link_visual'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <joint name='rear_right_joint' type='revolute'>
+        <pose relative_to='base_link'>-0.19 -0.1235 0 0 -0 0</pose>
+        <parent>base_link</parent>
+        <child>rear_right_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e+16</lower>
+            <upper>1e+16</upper>
+          </limit>
+          <dynamics>
+            <damping>0.5</damping>
+            <friction>0</friction>
+            <spring_reference>0</spring_reference>
+            <spring_stiffness>0</spring_stiffness>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name='rear_right_link'>
+        <pose relative_to='rear_right_joint'>0 0 0 0 -0 0</pose>
+        <inertial>
+          <pose>0 0 -0.08 0 -0 0</pose>
+          <mass>0.05</mass>
+          <inertia>
+            <ixx>0.000130865</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.000166666</iyy>
+            <iyz>0</iyz>
+            <izz>4.40694e-05</izz>
+          </inertia>
+        </inertial>
+        <collision name='rear_right_link_collision'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+          <surface>
+            <contact>
+              <ode>
+                <kp>1e+12</kp>
+                <kd>100</kd>
+                <min_depth>0.05</min_depth>
+              </ode>
+            </contact>
+            <friction>
+              <ode>
+                <mu>50</mu>
+                <mu2>50</mu2>
+              </ode>
+              <torsional>
+                <ode/>
+              </torsional>
+            </friction>
+            <bounce/>
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='rear_right_link_visual'>
+          <pose>0 0 0 0 -0 0</pose>
+          <geometry>
+            <mesh>
+              <scale>1 1 1</scale>
+              <uri>file:///home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/meshes/rpk10_leg.dae</uri>
+            </mesh>
+          </geometry>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <plugin name='p3d_base_controller' filename='libgazebo_ros_p3d.so'>
+        <ros>
+          <argument>/odom:=odom/robot_pos</argument>
+        </ros>
+        <body_name>base_link</body_name>
+        <frame_name>world</frame_name>
+        <update_rate>30.0</update_rate>
+        <xyz_offset>0 0 0</xyz_offset>
+        <rpy_offset>0 0 0</rpy_offset>
+        <gaussian_noise>0.01</gaussian_noise>
+      </plugin>
+      <static>0</static>
+      <plugin name='gazebo_ros2_control' filename='libgazebo_ros2_control.so'>
+        <parameters>/home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/config/ros_control.yaml</parameters>
+      </plugin>
+      <pose>0 0 0.1 0 -0 0</pose>
+    </model>
+    <model name='person_standing'>
+      <link name='link'>
+        <inertial>
+          <pose>0 -0.1 0.95 0 -0 0</pose>
+          <mass>80</mass>
+          <inertia>
+            <ixx>24.88</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>25.73</iyy>
+            <iyz>0</iyz>
+            <izz>2.48</izz>
+          </inertia>
+        </inertial>
+        <collision name='bottom'>
+          <pose>0 -0.1 0.01 0 -0 0</pose>
+          <geometry>
+            <box>
+              <size>0.5 0.35 0.02</size>
+            </box>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <collision name='person'>
+          <pose>0 0 0.02 0.04 -0 0</pose>
+          <geometry>
+            <mesh>
+              <uri>model://person_standing/meshes/standing.dae</uri>
+            </mesh>
+          </geometry>
+          <max_contacts>10</max_contacts>
+          <surface>
+            <contact>
+              <ode/>
+            </contact>
+            <bounce/>
+            <friction>
+              <torsional>
+                <ode/>
+              </torsional>
+              <ode/>
+            </friction>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <pose>0 0 0.02 0.04 -0 0</pose>
+          <geometry>
+            <mesh>
+              <uri>model://person_standing/meshes/standing.dae</uri>
+            </mesh>
+          </geometry>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+      <pose>0.984616 0.036632 0 0 -0 0</pose>
+    </model>
   </world>
 </sdf>
