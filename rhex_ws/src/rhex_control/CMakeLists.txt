@@ -18,6 +18,13 @@ install(
 )
 
 install(
+  PROGRAMS
+    scripts/simple_controller_server_network.py
+  DESTINATION
+    lib/${PROJECT_NAME}
+)
+
+install(
     DIRECTORY
         launch
     DESTINATION
