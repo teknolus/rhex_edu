@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-# TEMPLATE CODE 
 import rclpy
 from miscellaneous import constrain_angle
 import numpy as np
@@ -9,15 +8,15 @@ from control_msgs.action import FollowJointTrajectory
 from std_msgs.msg import Float64MultiArray
 from sensor_msgs.msg import JointState, Imu
 from nav_msgs.msg import Odometry
+import time 
 
-
-
-class SimpleLegController(Node):
+class SimpleSitter(Node):
     def __init__(self):
-        super().__init__('simple_leg_controller')
-        self.simple_controller_enable = False
+        super().__init__('simple_sitter')
         
-        self.declare_parameter('simple_controller_enable', False)
+        self.simple_sitter_enable = False
+        
+        self.declare_parameter('simple_sitter_enable', False)
         
         self.declare_parameter('cmd_tau', [0.0]*6)
         self.declare_parameter('cmd_vel', [0.0]*6)
@@ -44,15 +43,18 @@ class SimpleLegController(Node):
         self.globalPos = np.zeros(3)
         
         self.newdata = False
+        
+        self.begin = True 
+        self.startTime = 0
+        self.currentTime = 0
+        
         self.timer_count = 0
-        self.create_timer(1.0, self.update_parameters)
-        self.create_timer(0.1, self.run)  
-
-        self.get_logger().info("**************SimpleLegController initialized****************")
+        self.create_timer(0.01, self.run)  
+        self.get_logger().info("**************SimpleSitter initialized****************")
 
     def callback_position(self, msg):
         self.globalPos = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z])
-
+        
     def joint_state_callback(self, msg):
         self.currPos = constrain_angle(np.array([*msg.position]))
         self.currVel = np.array([*msg.velocity])
@@ -67,19 +69,9 @@ class SimpleLegController(Node):
     def imu_callback(self, msg):
         self.currPose = np.array([msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w])
         self.newdata = True  
-
-    def update_parameters(self):
         
-        self.cmd_tau = [-4.0, -4.0, -4.0, -4.0, -4.0, -4.0]
-        self.cmd_pos = [0.0,0.0, 0.0, 0.0, 0.0, 0.0]
-        self.cmd_vel = [0.0, 0.0, 0.0, 0.0, 0.00, 0.0]
-        self.cmd_kd = [0.350, 0.350, 0.350, 0.350, 0.350, 0.350]
-        self.cmd_kp = [0.65, 0.65, 0.65, 0.65, 0.65, 0.65]
-        
-        self.simple_controller_enable = self.get_parameter('simple_controller_enable').get_parameter_value().bool_value
-
-        
-        self.timer_count += 1
+    def print_joint_state(self):
+        self.get_logger().info(f"current pose:{self.currPos}")
 
     def compute_controls(self):
         
@@ -101,17 +93,37 @@ class SimpleLegController(Node):
         return list(commTorque[[2, 5, 1, 4, 0, 3]])
     
     def run(self):
+        
+        
+        self.cmd_tau = [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0]
+        self.cmd_pos = [0.0,0.0, 0.0, 0.0, 0.0, 0.0]
+        self.cmd_vel = [0.0, 0.0, 0.0, 0.0, 0.00, 0.0]
+        self.cmd_kd = [0.3750, 0.3750, 0.3750, 0.3750, 0.3750, 0.3750]
+        self.cmd_kp = [0.65, 0.65, 0.65, 0.65, 0.65, 0.65]
+             
+        
+        self.simple_sitter_enable = self.get_parameter('simple_sitter_enable').get_parameter_value().bool_value
+        
+        self.timer_count += 1
+
+        if (self.begin):
+            self.startTimeime = time.time()
+            self.begin = False
+        
+        self.currentTime = time.time()
+        self.intervalTime = self.currentTime - self.startTime
+        
         if self.newdata:
             torque = Float64MultiArray()
             torque.data = self.compute_controls()
-            if self.simple_controller_enable:
+            if (self.simple_sitter_enable):
                 self.publisher.publish(torque)
             self.newdata = False
-
-def main(args=None):
-    rclpy.init(args=args)
-    node = SimpleLegController()
-
+        
+def main (args = None):
+    rclpy.init(args = args)
+    node = SimpleSitter()
+    
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
@@ -119,10 +131,8 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
-
+        
+        
+    
 if __name__ == '__main__':
     main()
-
-    
-
-

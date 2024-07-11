@@ -25,6 +25,29 @@ install(
 )
 
 install(
+  PROGRAMS
+    scripts/simple_sitter.py
+  DESTINATION
+    lib/${PROJECT_NAME}
+)
+
+
+install(
+  PROGRAMS
+    scripts/simple_stander.py
+  DESTINATION
+    lib/${PROJECT_NAME}
+)
+
+
+install(
+  PROGRAMS
+    scripts/simple_walker.py
+  DESTINATION
+    lib/${PROJECT_NAME}
+)
+
+install(
     DIRECTORY
         launch
     DESTINATION

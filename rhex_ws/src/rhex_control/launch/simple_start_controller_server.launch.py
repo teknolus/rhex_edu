@@ -24,16 +24,51 @@ def generate_launch_description():
         executable="simple_controller_server_network.py",  
         output="screen",
         parameters=[
-                {'cmd_tau': [10.0, 20.0, 30.0, 40.0, 50.0, 600.0]},
-                {'cmd_vel': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]},
-                {'cmd_pos': [0.01, 0.02, 0.03, 0.04, 0.05, 0.06]},
-                {'cmd_kp': [0.001, 0.002, 0.003, 0.004, 0.005, 0.006]},
-                {'cmd_kd': [0.0001, 0.0002, 0.0003, 0.0004, 0.0005, 0.0006]},
+                {'cmd_tau': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_vel': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_pos': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_kp': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_kd': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
             ]
+    )
+    
+    simple_sitter_node = Node(
+        package="rhex_control",  
+        executable="simple_sitter.py",  
+        output="screen",
+        parameters=[
+                {'cmd_tau': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_vel': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_pos': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_kp': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_kd': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+            ]
+    )
+    
+    simple_stander_node = Node(
+        package="rhex_control",  
+        executable="simple_stander.py",  
+        output="screen",
+        parameters=[
+                {'cmd_tau': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_vel': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_pos': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_kp': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+                {'cmd_kd': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]},
+            ]
+    )
+    
+    simple_walker_node = Node(
+        package="rhex_control",  
+        executable="simple_walker.py",  
+        output="screen",
     )
 
     return LaunchDescription([
         load_joint_state_controller,
         load_effort_controller,
         controller_node,
+        simple_sitter_node,
+        simple_stander_node,
+        simple_walker_node
     ])

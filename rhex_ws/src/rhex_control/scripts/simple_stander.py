@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-# TEMPLATE CODE 
 import rclpy
 from miscellaneous import constrain_angle
 import numpy as np
@@ -9,15 +8,17 @@ from control_msgs.action import FollowJointTrajectory
 from std_msgs.msg import Float64MultiArray
 from sensor_msgs.msg import JointState, Imu
 from nav_msgs.msg import Odometry
+import time 
 
 
-
-class SimpleLegController(Node):
+class SimpleStander(Node):
     def __init__(self):
-        super().__init__('simple_leg_controller')
-        self.simple_controller_enable = False
+        super().__init__('simple_stander')
         
-        self.declare_parameter('simple_controller_enable', False)
+        self.simple_stander_enable = False
+        
+        
+        self.declare_parameter('simple_stander_enable', False)
         
         self.declare_parameter('cmd_tau', [0.0]*6)
         self.declare_parameter('cmd_vel', [0.0]*6)
@@ -28,8 +29,8 @@ class SimpleLegController(Node):
         self.cmd_tau = self.get_parameter('cmd_tau').get_parameter_value().double_array_value
         self.cmd_vel = self.get_parameter('cmd_vel').get_parameter_value().double_array_value
         self.cmd_pos = self.get_parameter('cmd_pos').get_parameter_value().double_array_value
-        self.cmd_kp = self.get_parameter('cmd_kp').get_parameter_value().double_array_value
-        self.cmd_kd = self.get_parameter('cmd_kd').get_parameter_value().double_array_value
+        self.cmd_kp = [0.65, 0.65, 0.65, 0.65, 0.65, 0.65]
+        self.cmd_kd = [0.375, 0.375, 0.375, 0.375, 0.375, 0.375]
 
         self.publisher = self.create_publisher(Float64MultiArray, '/effort_controller/commands', 10)
         
@@ -44,11 +45,14 @@ class SimpleLegController(Node):
         self.globalPos = np.zeros(3)
         
         self.newdata = False
+        
+        self.begin = True 
+        self.startTime = 0
+        self.currentTime = 0
+        
         self.timer_count = 0
-        self.create_timer(1.0, self.update_parameters)
-        self.create_timer(0.1, self.run)  
-
-        self.get_logger().info("**************SimpleLegController initialized****************")
+        self.create_timer(0.01, self.run)  
+        self.get_logger().info("**************SimpleStander initialized****************")
 
     def callback_position(self, msg):
         self.globalPos = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z])
@@ -66,28 +70,20 @@ class SimpleLegController(Node):
 
     def imu_callback(self, msg):
         self.currPose = np.array([msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w])
-        self.newdata = True  
+        self.newdata = True 
+        
+    def print_joint_state(self):
+        self.get_logger().info(f"current pose:{self.currPos}")
 
-    def update_parameters(self):
-        
-        self.cmd_tau = [-4.0, -4.0, -4.0, -4.0, -4.0, -4.0]
-        self.cmd_pos = [0.0,0.0, 0.0, 0.0, 0.0, 0.0]
-        self.cmd_vel = [0.0, 0.0, 0.0, 0.0, 0.00, 0.0]
-        self.cmd_kd = [0.350, 0.350, 0.350, 0.350, 0.350, 0.350]
-        self.cmd_kp = [0.65, 0.65, 0.65, 0.65, 0.65, 0.65]
-        
-        self.simple_controller_enable = self.get_parameter('simple_controller_enable').get_parameter_value().bool_value
 
-        
-        self.timer_count += 1
 
     def compute_controls(self):
-        
         cmd_tau = np.array(self.cmd_tau)
         cmd_vel = np.array(self.cmd_vel)
         cmd_pos = np.array(self.cmd_pos)
         cmd_kp = np.array(self.cmd_kp)
         cmd_kd = np.array(self.cmd_kd)
+        
         
         curr_Pos = np.array(self.currPos)
         curr_Vel = np.array(self.currVel)
@@ -95,23 +91,62 @@ class SimpleLegController(Node):
     
         posErr = (-cmd_pos) - curr_Pos
         posErr = np.mod(posErr+np.pi, 2*np.pi) - np.pi
+          
         velErr = (-cmd_vel) - curr_Vel
         commTorque = np.multiply(cmd_kp, posErr) + np.multiply(cmd_kd, velErr) - cmd_tau
         np.clip(commTorque, -20, 20, out=commTorque)
+        
         return list(commTorque[[2, 5, 1, 4, 0, 3]])
     
+    
     def run(self):
+        for i, pos in enumerate(self.currPos):
+            if 0.5 < pos < 1.2:
+                self.cmd_tau[i] = 0.4
+                self.cmd_pos[i] = 0.0
+                self.cmd_vel[i] = 0.0
+            elif 0 <= pos <= 0.5:
+                self.cmd_tau[i] = 0.5
+                self.cmd_pos[i] = 0.0
+                self.cmd_vel[i] = 0.0
+            elif -0.25 <= pos <0:
+                self.cmd_tau[i] = 0.0
+                self.cmd_pos[i] = 0.0
+                self.cmd_vel[i] = 0.0
+            elif pos < -0.25:
+                self.cmd_tau[i] = -1.0
+                self.cmd_pos[i] = 0.0
+                self.cmd_vel[i] = 0.0
+            else:
+                self.cmd_tau[i] = -1.5
+                self.cmd_pos[i] = 3.14
+                self.cmd_vel[i] = 0.0
+
+        
+        
+        
+        self.simple_stander_enable = self.get_parameter('simple_stander_enable').get_parameter_value().bool_value
+        
+        self.timer_count += 1
+
+        if (self.begin):
+            self.startTimeime = time.time()
+            self.begin = False
+        
+        
+        
         if self.newdata:
             torque = Float64MultiArray()
             torque.data = self.compute_controls()
-            if self.simple_controller_enable:
+            if (self.simple_stander_enable):
+                #self.get_logger().info("-------------------TORQUE PUBLISHED----------------")
                 self.publisher.publish(torque)
             self.newdata = False
-
-def main(args=None):
-    rclpy.init(args=args)
-    node = SimpleLegController()
-
+        
+def main (args = None):
+    rclpy.init(args = args)
+    node = SimpleStander()
+    
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
@@ -119,10 +154,8 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
-
+        
+        
+    
 if __name__ == '__main__':
     main()
-
-    
-
-

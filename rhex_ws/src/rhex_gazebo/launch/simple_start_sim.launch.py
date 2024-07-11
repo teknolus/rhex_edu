@@ -75,11 +75,29 @@ def generate_launch_description():
         ]
     )
 
-
-    # Start your simple_controller_server_network.py node
+    
     simple_controller_node = Node(
         package="rhex_control",  
-        executable="simple_controller_server_network.py",  # Replace with your executable name
+        executable="simple_controller_server_network.py",  
+        output="screen",
+    )
+    
+    simple_stander_node = Node(
+        package="rhex_control",  
+        executable="simple_stander.py",  
+        output="screen",
+    )
+    
+    simple_sitter_node = Node(
+        package="rhex_control",  
+        executable="simple_sitter.py",  
+        output="screen",
+    )
+
+    
+    simple_walker_node = Node(
+        package="rhex_control",  
+        executable="simple_walker.py",  
         output="screen",
     )
 
@@ -91,5 +109,8 @@ def generate_launch_description():
         gazebo,
         start_node_spawn_entity,
         simple_controller_node,
+        simple_sitter_node,
+        simple_stander_node,
+        simple_walker_node
     ])
 
