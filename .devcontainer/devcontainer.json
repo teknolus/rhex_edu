@@ -14,6 +14,8 @@
     "workspaceMount": "source=${localWorkspaceFolder},target=/home/rhex/mnt,type=bind,consistency=cached",
     "workspaceFolder": "/home/rhex/mnt/rhex_ws",
 
+    "privileged": true,
+
     "mounts": [
        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
     ],
