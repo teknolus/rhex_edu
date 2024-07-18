@@ -17,27 +17,7 @@ install(
     lib/${PROJECT_NAME}
 )
 
-install(
-  PROGRAMS
-    scripts/simple_controller_server_network.py
-  DESTINATION
-    lib/${PROJECT_NAME}
-)
 
-install(
-  PROGRAMS
-    scripts/simple_sitter.py
-  DESTINATION
-    lib/${PROJECT_NAME}
-)
-
-
-install(
-  PROGRAMS
-    scripts/simple_stander.py
-  DESTINATION
-    lib/${PROJECT_NAME}
-)
 
 
 install(

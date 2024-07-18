@@ -75,31 +75,7 @@ def generate_launch_description():
         ]
     )
 
-    
-    simple_controller_node = Node(
-        package="rhex_control",  
-        executable="simple_controller_server_network.py",  
-        output="screen",
-    )
-    
-    simple_stander_node = Node(
-        package="rhex_control",  
-        executable="simple_stander.py",  
-        output="screen",
-    )
-    
-    simple_sitter_node = Node(
-        package="rhex_control",  
-        executable="simple_sitter.py",  
-        output="screen",
-    )
-
-    
-    simple_walker_node = Node(
-        package="rhex_control",  
-        executable="simple_walker.py",  
-        output="screen",
-    )
+ 
 
 
     # Return the launch description, which includes the parameters and the nodes to be executed
@@ -107,10 +83,6 @@ def generate_launch_description():
         *declare_configurable_parameters(configurable_parameters),
         start_node_robot_state_publisher,
         gazebo,
-        start_node_spawn_entity,
-        simple_controller_node,
-        simple_sitter_node,
-        simple_stander_node,
-        simple_walker_node
+        start_node_spawn_entity
     ])
 
