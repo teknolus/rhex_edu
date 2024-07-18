@@ -12,18 +12,63 @@ from nav_msgs.msg import Odometry
 import time 
 import math
 
-# COMMANDS TO RUN: 
-# ros2 launch rhex_gazebo simple_start_sim.launch.py
-# ros2 launch rhex_control simple_start_controller_server.launch.py
-# ros2 param set /simple_walker simple_walker_enable True 
-# ros2 param set /simple_walker state 1 ------ FOR SITTING 
-# ros2 param set /simple_walker state 2 ------ FOR STANDING 
-# ros2 param set /simple_walker state 3 ------ FOR WALKING MODE 1
-# ros2 param set /simple_walker state 4 ------ FOR WALKING MODE 2
+"""
+Terminal Commands to run the controller node:
+    -launching gazebo: ros2 launch rhex_gazebo simple_start_sim.launch.py
+    -launching controller: ros2 launch rhex_control simple_start_controller_server.launch.py
+    -enabling simple_walker to publish torque commands: ros2 param set /simple_walker simple_walker_enable True 
+    -Walking, mode 2: ros2 param set /simple_walker state 4
+    -Walking, mode 1: ros2 param set /simple_walker state 3
+    -Standing: ros2 param set /simple_walker state 2
+    -Sitting: ros2 param set /simple_walker state 1
+"""
+
 
 
 
 class SimpleWalker(Node):
+    
+    """
+    A class for creating a ROS node that publishes torque commands to /effort_controller/commands.
+
+    This node uses a PD controller to generate torque commands based on the given state and parameters.
+
+    Attributes:
+        cmd_kp (float np array): Proportional gain parameter for the PD controller.
+        cmd_kd(float np array): derivative gain parameter for the PD controller.
+        cmd_tau (float np array): desired torque for the PD controller.
+        cmd_vel (float np array): desired velocity for the PD controller.
+        cmd_pos (float np array): desired pose for the PD controller.
+        
+        state (int): State parameter indicating the current mode or task of the walker.
+        simple_walker_enable (bool): Enables/disables the SimpleWalker node.
+
+    Methods:
+        __init__(self):
+            Initializes the SimpleWalker node and sets up necessary variables, parameters, publishers and subscribers.
+
+        callback_position(self, msg)
+            Updates globalPos via node's subscription to /odom/robot_pos
+            
+        joint_state_callback(self, msg)
+            Updates current pose, velocity, and torque via node's subscription to /joint_states
+        
+        imu_callback(self, msg)
+            Updates current pose via node's subscription to /imu/data 
+
+        print_joint_state(self)
+            Prints current pose whenever it is called 
+            
+        compute_controls(self)
+            Calculates the torque output of the PD controller given desired torque, velocity, and pose 
+            
+        def run(self)
+            Includes the states, calls the compute_controls, and publishes commands to /effort_controller/commands 
+
+    Usage:
+        Create an instance of SimpleWalker, set parameters via ROS parameter server, and start the node to publish torque commands.
+    """
+    
     def __init__(self):
         super().__init__('simple_walker')
         
@@ -87,7 +132,7 @@ class SimpleWalker(Node):
         self.currVel = np.array([*msg.velocity])
         self.currTorq = np.array([*msg.effort])
         self.currPos = self.currPos[[4, 2, 0, 5, 3, 1]]     
-        self.currVel = self.currVel[[4, 2, 0, 5, 3, 1]]
+        self.currVel = self.currVel[[4, 2, 0, 5, 3, 1]] 
         self.currTorq = self.currTorq[[4, 2, 0, 5, 3, 1]]
         self.newdata = True  
 
@@ -294,7 +339,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = -phi_s/4
                         self.cmd_vel[i] = (phi_s/ t_s)
                 
-                elif (t_d + t_c - t_s + (t_s)/4) <= t < (t_d + t_c - t_s + (t_s)/2):
+                elif (t_d + t_c - t_s + (t_s)/4) <= t < (t_d + t_c - t_s + (t_c - t_s)/2):
                     for i in [2, 4, 0]:
                         pos = self.currPos[i]
                         self.cmd_tau[i] = 0.0
@@ -306,7 +351,7 @@ class SimpleWalker(Node):
             if (self.state == 4):   
                 elapsed_time = ((time.time() - self.start_time)) * self.simulation_speedup
                 t_c = 2.0
-                t_s = 1.0 
+                t_s = 1.0 # assumption: t_s = t_c /2 
                 
                 self.cmd_kp = [4.75, 4.75, 4.75, 4.75, 4.75, 4.75]
                 self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
