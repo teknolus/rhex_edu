@@ -306,7 +306,7 @@ class SimpleWalker(Node):
             if (self.state == 4):   
                 elapsed_time = ((time.time() - self.start_time)) * self.simulation_speedup
                 t_c = 2.0
-                t_s = 1.0 # assumption: t_s = t_c /2 
+                t_s = 1.0 
                 
                 self.cmd_kp = [4.75, 4.75, 4.75, 4.75, 4.75, 4.75]
                 self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
