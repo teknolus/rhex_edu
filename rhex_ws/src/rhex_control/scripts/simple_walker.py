@@ -20,6 +20,8 @@ To launch the controller node:
     -launching controller: ros2 launch rhex_control simple_start_controller_server.launch.py
 To run the python file with all six modes (sitting, standing, walking1, walking2, turning right, turning left) that sends terminal commands to shell:
     -python3 /home/rhex/mnt/rhex_ws/src/rhex_control/scripts/buttons.py
+
+RECORDED VIDEO OF ALL THE MODES DISPLAYED IN GAZEBO: https://drive.google.com/file/d/1EaE3B8QvWIoyOZupTWEFk3yleI1IzY7K/view?usp=sharing
 """
 
 
@@ -71,11 +73,10 @@ class SimpleWalker(Node):
     def __init__(self):
         super().__init__('simple_walker')
         
-        # PARAMETERS
         
+        # declared parameters for communicating with the terminal 
         self.declare_parameter('state', 1)
         self.declare_parameter('simple_walker_enable', False)
-        
         self.declare_parameter('cmd_tau', [0.0]*6)
         self.declare_parameter('cmd_vel', [0.0]*6)
         self.declare_parameter('cmd_pos', [0.0]*6)
@@ -84,7 +85,7 @@ class SimpleWalker(Node):
         
         
         
-        # VARIABLES
+        # variables 
         
         self.newdata = False
         
@@ -109,20 +110,23 @@ class SimpleWalker(Node):
        
         
         # TOPICS
+        
+        # node publishes torque commands to /effort_controller/commands topic
         self.publisher = self.create_publisher(Float64MultiArray, '/effort_controller/commands', 10)
         
+        # node subscribes to /odom/robot/pos, /joint_states, /imu/data topics (currently only /joint_states data is utilized.)
         self.Odometry_Subscriber_ = self.create_subscription(Odometry, '/odom/robot_pos', self.callback_position, 10)
         self.subJoints_Subscriber_ = self.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
         self.subIMU_Subscriber_ = self.create_subscription(Imu, '/imu/data', self.imu_callback, 10)
 
         
-        # TIMERS
+        # run function publishes commands every 0.0025 second 
         self.create_timer(0.0025, self.run)  
         
         self.get_logger().info("**************SimpleWalker initialized****************")
         
 
-                
+           
     def callback_position(self, msg):
         self.globalPos = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z])
 
@@ -143,7 +147,7 @@ class SimpleWalker(Node):
         self.get_logger().info(f"current pose:{self.currPos}")
 
 
-
+    # computes the output of the closed loop pd controller given desired pose, velocity, torque and kp, kd values 
     def compute_controls(self):
         cmd_tau = np.array(self.cmd_tau)
         cmd_vel = np.array(self.cmd_vel)
@@ -160,6 +164,8 @@ class SimpleWalker(Node):
         np.clip(commTorque, -20, 20, out=commTorque)
         return list(commTorque[[2, 5, 1, 4, 0, 3]])
     
+    # checks if node is enabled, then based on the state, chooses corresponding cmd_tau, cmd_vel, cmd_pos, cmd_kp, cmd_kd values, 
+    # computes the closed loop torque output and publishes it to the /effort_controller/commands 
     
     def run(self):
         
