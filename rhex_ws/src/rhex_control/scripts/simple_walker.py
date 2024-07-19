@@ -14,16 +14,12 @@ import math
 
 """
 Terminal Commands to run the controller node:
+To launch Gazebo:
     -launching gazebo: ros2 launch rhex_gazebo simple_start_sim.launch.py
+To launch the controller node:
     -launching controller: ros2 launch rhex_control simple_start_controller_server.launch.py
-    -enabling simple_walker to publish torque commands: ros2 param set /simple_walker simple_walker_enable True 
-    
-    -Sitting: ros2 param set /simple_walker state 1
-    -Standing: ros2 param set /simple_walker state 2
-    -Walking, mode 1: ros2 param set /simple_walker state 3
-    -Walking, mode 2: ros2 param set /simple_walker state 4
-    -turn right: ros2 param set /simple_walker state 5
-    -turn left: ros2 param set /simple_walker state 6
+To run the python file with all six modes (sitting, standing, walking1, walking2, turning right, turning left) that sends terminal commands to shell:
+    -python3 /home/rhex/mnt/rhex_ws/src/rhex_control/scripts/buttons.py
 """
 
 
