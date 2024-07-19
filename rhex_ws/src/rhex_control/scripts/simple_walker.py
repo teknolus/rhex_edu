@@ -21,7 +21,7 @@ To launch the controller node:
 To run the python file with all six modes (sitting, standing, walking1, walking2, turning right, turning left) that sends terminal commands to shell:
     -python3 /home/rhex/mnt/rhex_ws/src/rhex_control/scripts/buttons.py
 
-RECORDED VIDEO OF ALL THE MODES DISPLAYED IN GAZEBO: https://drive.google.com/file/d/1EaE3B8QvWIoyOZupTWEFk3yleI1IzY7K/view?usp=sharing
+VIDEO W ALL MODES DISPLAYED: https://drive.google.com/file/d/1EaE3B8QvWIoyOZupTWEFk3yleI1IzY7K/view?usp=sharing
 """
 
 
@@ -227,7 +227,8 @@ class SimpleWalker(Node):
                 phi_s = 0.6
                 
                 t = elapsed_time % t_c
-
+                
+                ##################RIGHT TRIPOD #################
                 #### [-phi_s/2, 0]####
                 if 0 <= t < (t_s /8):
                     for i in [1, 3, 5]:
@@ -317,7 +318,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = math.pi
                         self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
                  
-                #### [phi, -phi_s/2]
+                #### [-pi, -phi_s/2]
                 elif (t_s + (t_c -t_s)/2) <= t < (t_s + 5* (t_c -t_s)/8):
                     for i in [1, 3, 5]:
                         pos = self.currPos[i]
@@ -346,6 +347,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = (2*math.pi - phi_s/2)
                         self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
                 
+                ##################LEFT TRIPOD #################
                 #### [0, phi_s/2] #### 
                 if (t_d + t_c - t_s + (t_s)/2) <= t < (t_d +t_c - t_s  + 5* (t_s)/8):
                     for i in [2, 4, 0]:
@@ -404,7 +406,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = math.pi
                         self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
                 
-                #### [pi, -phi_s/2]
+                #### [-pi, -phi_s/2]
                 elif (t_d + (t_c - t_s)/2) <= t < (t_d + 5* (t_c - t_s)/8):
                     for i in [2, 4, 0]:
                         pos = self.currPos[i]
@@ -478,6 +480,7 @@ class SimpleWalker(Node):
                 
                 t = elapsed_time % t_c
 
+                ##################RIGHT TRIPOD #################
                 #### [-phi_s/2, 0]####
                 if 0 <= t < (t_s /8):
                     for i in [1, 3, 5]:
@@ -567,7 +570,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = math.pi
                         self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
                  
-                #### [phi, -phi_s/2]
+                #### [-pi, -phi_s/2]
                 elif (t_s + (t_c -t_s)/2) <= t < (t_s + 5* (t_c -t_s)/8):
                     for i in [1, 3, 5]:
                         pos = self.currPos[i]
@@ -596,6 +599,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = (2*math.pi - phi_s/2)
                         self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
                 
+                ##################LEFT TRIPOD #################
                 #### [0, phi_s/2] #### 
                 if (t_d + t_c - t_s + (t_s)/2) <= t < (t_d +t_c - t_s  + 5* (t_s)/8):
                     for i in [2, 4, 0]:
@@ -654,7 +658,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = math.pi
                         self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
                 
-                #### [pi, -phi_s/2]
+                #### [-pi, -phi_s/2]
                 elif (t_d + (t_c - t_s)/2) <= t < (t_d + 5* (t_c - t_s)/8):
                     for i in [2, 4, 0]:
                         pos = self.currPos[i]
@@ -725,7 +729,7 @@ class SimpleWalker(Node):
                 phi_s = 0.7
                 
                 t = elapsed_time % t_c
-
+                ##################RIGHT TRIPOD #################
                 #### [phi_s/2, 0]####
                 if 0 <= t < (t_s /8):
                     for i in [1, 3, 5]:
@@ -815,7 +819,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = -math.pi
                         self.cmd_vel[i] = -(2* math.pi - phi_s)/(t_c - t_s)
                  
-                #### [-phi, phi_s/2]
+                #### [pi, phi_s/2]
                 elif (t_s + (t_c -t_s)/2) <= t < (t_s + 5* (t_c -t_s)/8):
                     for i in [1, 3, 5]:
                         pos = self.currPos[i]
@@ -844,6 +848,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = (-2*math.pi + phi_s/2)
                         self.cmd_vel[i] = -(2* math.pi - phi_s)/(t_c - t_s)
                 
+                ##################LEFT TRIPOD #################
                 #### [0, phi_s/2] #### 
                 if (t_d + t_c - t_s + (t_s)/2) <= t < (t_d +t_c - t_s  + 5* (t_s)/8):
                     for i in [2, 4, 0]:
@@ -902,7 +907,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = math.pi
                         self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
                 
-                #### [pi, -phi_s/2]
+                #### [-pi, -phi_s/2]
                 elif (t_d + (t_c - t_s)/2) <= t < (t_d + 5* (t_c - t_s)/8):
                     for i in [2, 4, 0]:
                         pos = self.currPos[i]
@@ -1064,7 +1069,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = math.pi
                         self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
                  
-                #### [phi, -phi_s/2]
+                #### [-pi, -phi_s/2]
                 elif (t_s + (t_c -t_s)/2) <= t < (t_s + 5* (t_c -t_s)/8):
                     for i in [1, 3, 5]:
                         pos = self.currPos[i]
@@ -1152,7 +1157,7 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = -math.pi
                         self.cmd_vel[i] = -(2* math.pi - phi_s)/(t_c - t_s)
                 
-                #### [-pi, phi_s/2]
+                #### [pi, phi_s/2]
                 elif (t_d + (t_c - t_s)/2) <= t < (t_d + 5* (t_c - t_s)/8):
                     for i in [2, 4, 0]:
                         pos = self.currPos[i]
