@@ -17,7 +17,6 @@ Terminal Commands to run the controller node:
     -launching gazebo: ros2 launch rhex_gazebo simple_start_sim.launch.py
     -launching controller: ros2 launch rhex_control simple_start_controller_server.launch.py
     -enabling simple_walker to publish torque commands: ros2 param set /simple_walker simple_walker_enable True 
-    -Walking, mode 2: ros2 param set /simple_walker state 4
     -Walking, mode 1: ros2 param set /simple_walker state 3
     -Standing: ros2 param set /simple_walker state 2
     -Sitting: ros2 param set /simple_walker state 1
@@ -209,149 +208,13 @@ class SimpleWalker(Node):
                         self.cmd_pos[i] = 3.14
                         self.cmd_vel[i] = 0.5
             
-                        
-            # WALK _ MODE 1: 8 Time Regions 
+                   
+            
+            # WALK MODE 1
             if (self.state == 3):   
-                
-                self.cmd_kp = [3.75, 3.75, 3.75, 3.75, 3.75, 3.75]
-                self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
-                
-                elapsed_time = ((time.time() - self.start_time)) * self.simulation_speedup
-                t_c = 1.6
-                t_s = 0.8
-                t_d = 0.0 # assumption: t_d < t_s /4
-                phi_s = 0.6
-                t = elapsed_time % t_c
-
-                #### [-phi_s/2, 0]####
-                if 0 <= t < (t_s /4):
-                    for i in [1, 3, 5]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = -phi_s/4
-                        self.cmd_vel[i] = (phi_s/ t_s)
-                
-                elif (t_s /4) <= t < (t_s /2):
-                    for i in [1, 3, 5]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = 0.0
-                        self.cmd_vel[i] = (phi_s/t_s)
-                 
-                #### [0, phi_s/2] ####
-                     
-                elif t_s/2 <= t < (3* t_s /4):
-                    for i in [1, 3, 5]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (phi_s/4)
-                        self.cmd_vel[i] = (phi_s/t_s)
-                
-                elif (3* t_s /4) <= t < (t_s):
-                    for i in [1, 3, 5]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (phi_s/2)
-                        self.cmd_vel[i] = (phi_s/ t_s)
-                
-                #### [phi_s/2, pi] ####
-                
-                elif t_s <= t < (t_s + (t_c -t_s)/4):
-                    for i in [1, 3, 5]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (math.pi+phi_s/2)/2
-                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
-                
-                elif (t_s + (t_c -t_s)/4) <= t < (t_s + (t_c -t_s)/2):
-                    for i in [1, 3, 5]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = math.pi
-                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
-                 
-                #### [phi, -phi_s/2]
-                elif (t_s + (t_c -t_s)/2) <= t < (t_s + 3* (t_c -t_s)/4):
-                    for i in [1, 3, 5]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (math.pi+(2*math.pi - phi_s/2))/2
-                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
-                        
-                elif (t_s + 3* (t_c -t_s)/4)<= t < t_c:
-                    for i in [1, 3, 5]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (2*math.pi - phi_s/2)
-                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
-                
-                #### [0, phi_s/2] #### 
-                if (t_d + t_c - t_s + (t_s)/2) <= t < (t_d + t_c - t_s + 3* (t_s)/4):
-                    for i in [2, 4, 0]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (phi_s/4)
-                        self.cmd_vel[i] = (phi_s/ t_s)
-                        
-                elif 0 <= t < t_d or (t_d + t_c - t_s + 3* (t_s)/4) <= t < t_c:
-                    for i in [2, 4, 0]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (phi_s/2)
-                        self.cmd_vel[i] = (phi_s/ t_s)
-                
-                #### [phi_s/2, pi] #####
-                elif t_d <= t < (t_d + (t_c -t_s)/4):
-                    for i in [2, 4, 0]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (math.pi+phi_s/2)/2
-                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
-                        
-                elif (t_d + (t_c - t_s)/4) <= t < (t_d + (t_c - t_s)/2):
-                    for i in [2, 4, 0]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = math.pi
-                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
-                
-                #### [pi, -phi_s/2]
-                elif (t_d + (t_c - t_s)/2) <= t < (t_d + 3* (t_c - t_s)/4):
-                    for i in [2, 4, 0]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (math.pi+(2*math.pi - phi_s/2))/2
-                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)  
-                
-                elif (t_d+ 3* (t_c - t_s)/4) <= t < (t_d + t_c - t_s):
-                    for i in [2, 4, 0]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (2*math.pi - phi_s/2)
-                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
-                
-                
-                #### [-phi_s/2, 0]
-                elif (t_d + t_c - t_s) <= t < (t_d + t_c - t_s + (t_s)/4):
-                    for i in [2, 4, 0]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = -phi_s/4
-                        self.cmd_vel[i] = (phi_s/ t_s)
-                
-                elif (t_d + t_c - t_s + (t_s)/4) <= t < (t_d + t_c - t_s + (t_c - t_s)/2):
-                    for i in [2, 4, 0]:
-                        pos = self.currPos[i]
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = 0.0
-                        self.cmd_vel[i] = (phi_s/ t_s)
-            
-            
-            # WALK MODE 2: 16 TIME REGIONS 
-            if (self.state == 4):   
                 elapsed_time = ((time.time() - self.start_time)) * self.simulation_speedup
                 t_c = 2.0
-                t_s = 1.0 # assumption: t_s = t_c /2 
+                t_s = 1.0 
                 
                 self.cmd_kp = [4.75, 4.75, 4.75, 4.75, 4.75, 4.75]
                 self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
@@ -366,7 +229,7 @@ class SimpleWalker(Node):
                     for i in [1, 3, 5]:
                         pos = self.currPos[i]
                         self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = -phi_s/8
+                        self.cmd_pos[i] = -3* phi_s/8
                         self.cmd_vel[i] = (phi_s/ t_s)
                         
                 elif (t_s /8) <= t < (t_s /4):
@@ -380,7 +243,7 @@ class SimpleWalker(Node):
                     for i in [1, 3, 5]:
                         pos = self.currPos[i]
                         self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = -3* phi_s/4
+                        self.cmd_pos[i] = -phi_s/8
                         self.cmd_vel[i] = (phi_s/t_s)
                 
                 elif (3* t_s /8) <= t < (t_s /2):
@@ -396,7 +259,7 @@ class SimpleWalker(Node):
                     for i in [1, 3, 5]:
                         pos = self.currPos[i]
                         self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (3*phi_s/8)
+                        self.cmd_pos[i] = (phi_s/8)
                         self.cmd_vel[i] = (phi_s/t_s)
                         
                 elif (5* t_s /8) <= t < (3* t_s /4):
@@ -426,7 +289,7 @@ class SimpleWalker(Node):
                     for i in [1, 3, 5]:
                         pos = self.currPos[i]
                         self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = ((math.pi+phi_s/2)/2 + phi_s/2)/2
+                        self.cmd_pos[i] = (math.pi+phi_s/2)/4
                         self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
                         
                 elif (t_s + (t_c -t_s)/8) <= t < (t_s + (t_c -t_s)/4):
@@ -440,7 +303,7 @@ class SimpleWalker(Node):
                     for i in [1, 3, 5]:
                         pos = self.currPos[i]
                         self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (math.pi+ (math.pi+phi_s/2)/2)/2
+                        self.cmd_pos[i] = (math.pi + (math.pi+phi_s/2)/2)/2
                         self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
                 
                 elif (t_s + 3* (t_c -t_s)/8) <= t < (t_s + (t_c -t_s)/2):
@@ -480,25 +343,25 @@ class SimpleWalker(Node):
                         self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
                 
                 #### [0, phi_s/2] #### 
-                if (t_d + t_c - t_s + (t_s)/2) <= t < (t_d +t_c - t_s  + 5* (t_s)/4):
+                if (t_d + t_c - t_s + (t_s)/2) <= t < (t_d +t_c - t_s  + 5* (t_s)/8):
                     for i in [2, 4, 0]:
                         pos = self.currPos[i]
                         self.cmd_tau[i] = 0.0
                         self.cmd_pos[i] = (phi_s/8)
                         self.cmd_vel[i] = (phi_s/ t_s)
                 
-                elif (t_d + t_c - t_s  + 5* (t_s)/4) <= t < (t_d + t_c - t_s  + 3* (t_s)/4):
+                elif (t_d + t_c - t_s  + 5* (t_s)/8) <= t < (t_d + t_c - t_s  + 3* (t_s)/4):
                     for i in [2, 4, 0]:
                         pos = self.currPos[i]
                         self.cmd_tau[i] = 0.0
                         self.cmd_pos[i] = (phi_s/4)
                         self.cmd_vel[i] = (phi_s/ t_s)
                         
-                elif 0 <= t < t_d or (t_d + t_c - t_s  + 3* (t_s)/4) <= t < (t_d + t_c - t_s + 7* (t_s)/8) :
+                elif (t_d + t_c - t_s  + 3* (t_s)/4) <= t < (t_d + t_c - t_s + 7* (t_s)/8) :
                     for i in [2, 4, 0]:
                         pos = self.currPos[i]
                         self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = (phi_s/4)
+                        self.cmd_pos[i] = (3* phi_s/8)
                         self.cmd_vel[i] = (phi_s/ t_s)
                         
                 elif 0 <= t < t_d or (t_d + t_c - t_s + 7* (t_s)/8) <= t < t_c:
@@ -572,7 +435,7 @@ class SimpleWalker(Node):
                     for i in [2, 4, 0]:
                         pos = self.currPos[i]
                         self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = -phi_s/8
+                        self.cmd_pos[i] = -3* phi_s/8
                         self.cmd_vel[i] = (phi_s/ t_s)
                         
                 elif (t_d + t_c - t_s  + (t_s)/8) <= t < (t_d + t_c - t_s  + (t_s)/4):
@@ -597,7 +460,6 @@ class SimpleWalker(Node):
                         self.cmd_vel[i] = (phi_s/ t_s)
                 
            
-                        
         self.simple_walker_enable = self.get_parameter('simple_walker_enable').get_parameter_value().bool_value
         self.state = self.get_parameter('state').get_parameter_value().integer_value
 
