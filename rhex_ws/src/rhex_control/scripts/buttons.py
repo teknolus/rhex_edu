@@ -14,5 +14,6 @@ tk.Button(root, text="Walking Mode 1", command=lambda: send_command("ros2 param 
 tk.Button(root, text="Walking Mode 2", command=lambda: send_command("ros2 param set /simple_walker state 4")).pack()
 tk.Button(root, text="Turn Right", command=lambda: send_command("ros2 param set /simple_walker state 5")).pack()
 tk.Button(root, text="Turn Left", command=lambda: send_command("ros2 param set /simple_walker state 6")).pack()
+tk.Button(root, text="little dance :D ", command=lambda: send_command("ros2 param set /simple_walker state 7")).pack()
 
 root.mainloop()
