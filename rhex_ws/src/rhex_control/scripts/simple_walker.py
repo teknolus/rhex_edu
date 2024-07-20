@@ -18,7 +18,7 @@ To launch Gazebo:
     -launching gazebo: ros2 launch rhex_gazebo simple_start_sim.launch.py
 To launch the controller node:
     -launching controller: ros2 launch rhex_control simple_start_controller_server.launch.py
-To run the python file with all six modes (sitting, standing, walking1, walking2, turning right, turning left) that sends terminal commands to shell:
+To run the python file with all six modes (sitting, standing, walking1, walking2, turning right, turning left, dancing) that sends terminal commands to shell:
     -python3 /home/rhex/mnt/rhex_ws/src/rhex_control/scripts/buttons.py
 
 VIDEO W ALL MODES DISPLAYED: https://drive.google.com/file/d/1EaE3B8QvWIoyOZupTWEFk3yleI1IzY7K/view?usp=sharing
@@ -1215,6 +1215,316 @@ class SimpleWalker(Node):
                         self.cmd_tau[i] = 0.0
                         self.cmd_pos[i] = 0.0
                         self.cmd_vel[i] = -(phi_s/ t_s)
+            
+            # DANCEEEEEEEEEEEEEEEEEEEEEEE
+            if (self.state == 7):   
+                elapsed_time = ((time.time() - self.start_time)) * self.simulation_speedup
+                t_c = 1.0
+                t_s = 0.5 
+                
+                self.cmd_kp = [20.75, 20.75, 20.75, 20.75, 20.75, 20.75]
+                self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
+                
+                
+                phi_s = 0.6
+                
+                t = elapsed_time % (t_c + 2.0)
+                
+                ##################RIGHT TRIPOD #################
+                #### [-phi_s/2, 0]####
+                if 0 <= t < (t_s /8):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = -3* phi_s/8
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                        
+                elif (t_s /8) <= t < (t_s /4):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = -phi_s/4
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                        
+                        
+                        
+                elif (t_s /4 ) <= t < (3* t_s /8 ):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = -phi_s/8
+                        self.cmd_vel[i] = (phi_s/t_s)
+                
+                elif (3* t_s /8 ) <= t < (t_s /2 ):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = 0.0
+                        self.cmd_vel[i] = (phi_s/t_s)
+                 
+                 #### DANCE BREAK ####################################################################################
+                elif (t_s /2) <= t < (t_s /2 +1.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = 0.0
+                        self.cmd_vel[i] = 0.0
+                #### DANCE BREAK ####################################################################################
+                
+                #### [0, phi_s/2] ####
+                     
+                elif (t_s/2 + 1.0) <= t < (5* t_s /8 + 1.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (phi_s/8)
+                        self.cmd_vel[i] = (phi_s/t_s)
+                        
+                elif (5* t_s /8 + 1.0) <= t < (3* t_s /4 + 1.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (phi_s/4)
+                        self.cmd_vel[i] = (phi_s/t_s)
+                
+
+                elif (3* t_s /4 + 1.0) <= t < (7* t_s /8 + 1.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (3*phi_s/8)
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                
+                elif (7* t_s /8 + 1.0) <= t < (t_s + 1.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (phi_s/2)
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                
+                #### [phi_s/2, pi] ####
+                
+                elif (t_s+ 1.0) <= t < (t_s + (t_c -t_s)/8 + 1.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi+phi_s/2)/4
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                        
+                elif (t_s + (t_c -t_s)/8+ 1.0) <= t < (t_s + (t_c -t_s)/4+ 1.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi+phi_s/2)/2
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                
+                elif (t_s + (t_c -t_s)/4+ 1.0) <= t < (t_s + 3* (t_c -t_s)/8+ 1.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi + (math.pi+phi_s/2)/2)/2
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                
+                elif (t_s + 3* (t_c -t_s)/8 + 1.0) <= t < (t_s + (t_c -t_s)/2+ 1.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = math.pi
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                
+                
+                ######################### DANCE BREAKKKKKKKKKKKKKKKKKKKKKK #############################################
+                elif (t_s + (t_c -t_s)/2 + 1.0)  <= t < (t_s + (t_c -t_s)/2+ 1.5):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi/2)
+                        self.cmd_vel[i] =  0.0
+                        
+                elif (t_s + (t_c -t_s)/2+ 1.5)<= t < (t_s + (t_c -t_s)/2+ 2.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi)
+                        self.cmd_vel[i] = 0.0
+                       
+                ######################### DANCE BREAKKKKKKKKKKKKKKKKKKKKKK #############################################
+                #### [-pi, -phi_s/2]
+                elif (t_s + (t_c -t_s)/2 + 2.0) <= t < (t_s + 5* (t_c -t_s)/8 + 2.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi + (math.pi+(2*math.pi - phi_s/2))/2) /2
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                
+                elif (t_s + 5* (t_c -t_s)/8 + 2.0) <= t < (t_s + 3* (t_c -t_s)/4 + 2.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi+(2*math.pi - phi_s/2))/2
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                        
+                elif (t_s + 3* (t_c -t_s)/4 + 2.0)<= t < (t_s + 7* (t_c -t_s)/8 + 2.0) :
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = ((2*math.pi - phi_s/2)+ (math.pi+(2*math.pi - phi_s/2))/2)/2
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                
+                elif ((t_s + 7* (t_c -t_s)/8 + 2.0) + 3* (t_c -t_s)/4)<= t < (t_c + 2.0):
+                    for i in [1, 3, 5]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (2*math.pi - phi_s/2)
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                
+                ##################LEFT TRIPOD #################
+                ###################### DANCE BREAKKKKKKKKIEEEEEEEEEEEEEEE ###########################################
+                if (t_c - t_s + (t_s)/2 +1.0) <= t < (t_c - t_s + (t_s)/2 +2.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = 0.0
+                        self.cmd_vel[i] = 0.0
+                ###################### DANCE BREAKKKKKKKKIEEEEEEEEEEEEEEE ###########################################
+                #### [0, phi_s/2] #### 
+                elif (t_c - t_s + (t_s)/2 +2.0) <= t < (t_c - t_s  + 5* (t_s)/8 +2.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (phi_s/8)
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                
+                elif (t_c - t_s  + 5* (t_s)/8 +2.0) <= t < (t_c - t_s  + 3* (t_s)/4 +2.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (phi_s/4)
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                        
+                elif (t_c - t_s  + 3* (t_s)/4 +2.0) <= t < (t_c - t_s + 7* (t_s)/8 +2.0) :
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (3* phi_s/8)
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                        
+                elif (t_c - t_s + 7* (t_s)/8 +2.0) <= t < (t_c+2.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (phi_s/2)
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                
+                #### [phi_s/2, pi] #####
+                elif 0 <= t < (t_c - t_s)/8:
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (phi_s/2 + (math.pi+phi_s/2)/2) /2
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                        
+                elif ((t_c - t_s)/8) <= t < ((t_c - t_s)/4):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi+phi_s/2)/2
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                
+                
+                        
+                elif ((t_c - t_s)/4 ) <= t < (3* (t_c - t_s)/8 ):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi + (math.pi+phi_s/2)/2)/2
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                
+                elif (3* (t_c - t_s)/8 ) <= t < (t_s/2 ):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = math.pi
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                        
+                #### DANCE BREAK ####################################################################################
+                elif (t_s/2 ) <= t < (t_s/2 ) + 0.5:
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi)/2
+                        self.cmd_vel[i] = 0.0
+                        
+                elif ( t_s/2 + 0.5) <= t < ( t_s/2 + 1.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi)
+                        self.cmd_vel[i] = 0.0
+                #### DANCE BREAK ####################################################################################
+                
+                #### [-pi, -phi_s/2]
+                elif ((t_c - t_s)/2 + 1.0) <= t < (5* (t_c - t_s)/8 + 1.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi +(math.pi+(2*math.pi - phi_s/2))/2)/2
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)  
+                        
+                elif  ( 5* (t_c - t_s)/8 + 1.0) <= t < (3* (t_c - t_s)/4 + 1.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (math.pi+(2*math.pi - phi_s/2))/2
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s) 
+                
+
+                elif (3* (t_c - t_s)/4 +1.0) <= t < (7* (t_c - t_s)/8 +1.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = ((math.pi+(2*math.pi - phi_s/2))/2 + (2*math.pi - phi_s/2))/2
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                
+                elif  (7* (t_c - t_s)/8 +1.0) <= t < ((t_c - t_s)+1.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = (2*math.pi - phi_s/2)
+                        self.cmd_vel[i] = (2* math.pi - phi_s)/(t_c - t_s)
+                
+                
+                #### [-phi_s/2, 0]
+                elif ((t_c - t_s)+1.0) <= t < ((t_c - t_s  + (t_s)/8)+1.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = -3* phi_s/8
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                        
+                elif (t_c - t_s  + (t_s)/8 +1.0)  <= t < (t_c - t_s  + (t_s)/4 +1.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = -phi_s/4
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                
+                elif (t_c - t_s  + (t_s)/4 +1.0) <= t < (t_c - t_s + 3*(t_s)/8 +1.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = -phi_s /8
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                        
+                elif (t_c - t_s + 3*(t_s)/8 +1.0) <= t < (t_c - t_s + (t_s)/2 +1.0):
+                    for i in [2, 4, 0]:
+                        pos = self.currPos[i]
+                        self.cmd_tau[i] = 0.0
+                        self.cmd_pos[i] = 0.0
+                        self.cmd_vel[i] = (phi_s/ t_s)
+                
+     
+  
              
         self.simple_walker_enable = self.get_parameter('simple_walker_enable').get_parameter_value().bool_value
         self.state = self.get_parameter('state').get_parameter_value().integer_value
