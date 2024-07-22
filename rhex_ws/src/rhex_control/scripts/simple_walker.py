@@ -168,243 +168,256 @@ class SimpleWalker(Node):
         np.clip(commTorque, -20, 20, out=commTorque)
         return list(commTorque[[2, 5, 1, 4, 0, 3]])
     
-    # checks if node is enabled, then based on the state, chooses corresponding cmd_tau, cmd_vel, cmd_pos, cmd_kp, cmd_kd values, 
-    # computes the closed loop torque output and publishes it to the /effort_controller/commands 
+    def simple_sit (self): 
+        
+        self.cmd_kp = [8.0] * 6
+        self.cmd_kd = [0.35] * 6 
+        for i, pos in enumerate(self.currPos):
+            
+                if (-math.pi  <= pos < -1.0):
+                    self.cmd_tau[i] = 0.0
+                    self.cmd_pos[i] = -1.3
+                    self.cmd_vel[i] = 0.0
+                    
+                elif (-1.0 <= pos < 1.0):
+                    self.cmd_tau[i] = 0.0
+                    self.cmd_pos[i] = -1.3
+                    self.cmd_vel[i] = -0.5
+                    
+                elif (1.0 <= pos<= 3.14):
+                    self.cmd_tau[i] = 0.0
+                    self.cmd_pos[i] = 2*math.pi -1.3
+                    self.cmd_vel[i] = 0.5
+                 
+    def simple_stand (self):
+              
+        self.cmd_kp = [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
+        self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
+                
+        for i, pos in enumerate(self.currPos):
+            if -3.14 < pos < -0.4:
+                self.cmd_tau[i] = 0.0
+                self.cmd_pos[i] = 0.0
+                self.cmd_vel[i] = 0.5
+                        
+            elif -0.4 <= pos <= 0.4:
+                self.cmd_tau[i] = 0.0
+                self.cmd_pos[i] = 0.0
+                self.cmd_vel[i] = 0.0
+                        
+            elif 0.4 <= pos < 1.0:
+                self.cmd_tau[i] = 0.0
+                self.cmd_pos[i] = 0.0
+                self.cmd_vel[i] = -0.5
+                    
+            elif 1.0 <= pos < 3.14:
+                self.cmd_tau[i] = 0.0
+                self.cmd_pos[i] = 3.14
+                self.cmd_vel[i] = 0.5
+        
+    def simple_walk (self):
+        elapsed_time = ((time.time() - self.start_time)) / self.simulation_speedup
+         
+        t_c = 2.0
+        t_s = 1.0 
+        t_f = t_c - t_s
+        t_d = 0.01 
+        phi_s = 0.6
+                
+        t = elapsed_time % t_c
+                
+        v_s = phi_s / t_s
+        v_f = (2*math.pi - phi_s)/(t_c - t_s)
+                
+        self.cmd_kp = [14.75, 14.75, 14.75, 14.75, 14.75, 14.75]
+        self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
+        self.cmd_tau = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                
+                
+        # RIGHT TRIPOD
+        for i in [1, 3, 5]: 
+            if (0 <= t < t_s):
+                self.cmd_pos[i] = v_s *t - phi_s/2
+                self.cmd_vel[i] = v_s
+                            
+            elif (t_s <= t < t_c):
+                self.cmd_pos[i] = v_f * (t - t_s) + phi_s/2
+                self.cmd_vel[i] = v_f
+                            
+        # LEFT TRIPOD 
+        for i in [0, 2, 4]:
+            if (t_d <= t < t_d + t_f):
+                self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
+                self.cmd_vel[i] = v_f
+                            
+            elif (t_d + t_f <= t < t_c):
+                self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
+                self.cmd_vel[i] = v_s    
+                        
+            elif (0 <= t < t_d):
+                self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
+                self.cmd_vel[i] = v_s
     
+    def simple_run (self):  
+        elapsed_time = ((time.time() - self.start_time)) / self.simulation_speedup
+        
+        t_c = 0.5
+        t_s = 0.25
+        t_f = t_c - t_s
+        t_d = 0.01 
+        phi_s = 0.6
+                
+        t = elapsed_time % t_c
+                
+        v_s = phi_s / t_s
+        v_f = (2*math.pi - phi_s)/(t_c - t_s)
+                
+        self.cmd_kp = [14.75, 14.75, 14.75, 14.75, 14.75, 14.75]
+        self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
+        self.cmd_tau = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                
+                
+        # RIGHT TRIPOD
+        for i in [1, 3, 5]: 
+            if (0 <= t < t_s):
+                self.cmd_pos[i] = v_s *t - phi_s/2
+                self.cmd_vel[i] = v_s
+                            
+            elif (t_s <= t < t_c):
+                self.cmd_pos[i] = v_f * (t - t_s) + phi_s/2
+                self.cmd_vel[i] = v_f
+                            
+        # LEFT TRIPOD 
+                
+            for i in [0, 2, 4]:
+                if (t_d <= t < t_d + t_f):
+                    self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
+                    self.cmd_vel[i] = v_f
+                            
+                elif (t_d + t_f <= t < t_c):
+                    self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
+                    self.cmd_vel[i] = v_s    
+                        
+                elif (0 <= t < t_d):
+                    self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
+                    self.cmd_vel[i] = v_s
+         
+    def simple_turn_right (self):
+        elapsed_time = ((time.time() - self.start_time)) / self.simulation_speedup
+                
+                
+        t_c = 2.0
+        t_s = 1.0
+        t_f = t_c - t_s
+        t_d = 0.0
+        phi_s = 0.6
+                
+        t = elapsed_time % t_c
+                
+        v_s = phi_s / t_s
+        v_f = (2*math.pi - phi_s)/(t_c - t_s)
+                
+        self.cmd_kp = [10.75, 10.75, 10.75, 10.75, 10.75, 10.75]
+        self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
+        self.cmd_tau = [-2.0, 0.0, -2.0, 0.0, -2.0, 0.0]
+                
+                
+        # RIGHT TRIPOD
+        for i in [1, 3, 5]: 
+            if (0 <= t < t_s):
+                self.cmd_pos[i] = v_s *t - phi_s/2
+                self.cmd_vel[i] = v_s
+                            
+            elif (t_s <= t < t_c):
+                self.cmd_pos[i] = v_f * (t - t_s) + phi_s/2
+                self.cmd_vel[i] = v_f
+                            
+        # LEFT TRIPOD 
+                
+        for i in [0, 2, 4]:
+            if (t_d <= t < t_d + t_f):
+                self.cmd_pos[i] = - v_f *(t - t_d) - phi_s/2
+                self.cmd_vel[i] = - v_f
+                            
+            elif (t_d + t_f <= t < t_c):
+                self.cmd_pos[i] = - v_s * (t- (t_d + t_f)) - (2* math.pi - phi_s/2)
+                self.cmd_vel[i] = - v_s    
+                        
+            elif (0 <= t < t_d):
+                self.cmd_pos[i] = - v_s * (t + t_s - t_d) - (2* math.pi -phi_s/2)
+                self.cmd_vel[i] = - v_s
+            
+    def simple_turn_left (self):
+        elapsed_time = ((time.time() - self.start_time)) / self.simulation_speedup
+                
+        t_c = 2.0
+        t_s = 1.0
+        t_f = t_c - t_s
+        t_d = 0.0
+        phi_s = 0.6
+                
+        t = elapsed_time % t_c
+                
+        v_s = phi_s / t_s
+        v_f = (2*math.pi - phi_s)/(t_c - t_s)
+                
+        self.cmd_kp = [10.75, 10.75, 10.75, 10.75, 10.75, 10.75]
+        self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
+        self.cmd_tau = [0.0, -2.0, 0.0, -2.0, 0.0, -2.0]
+                
+                
+        # RIGHT TRIPOD
+        for i in [1, 3, 5]: 
+            if (0 <= t < t_s):
+                self.cmd_pos[i] = - v_s *t + phi_s/2
+                self.cmd_vel[i] = - v_s
+                            
+            elif (t_s <= t < t_c):
+                self.cmd_pos[i] = - v_f * (t - t_s) - phi_s/2
+                self.cmd_vel[i] = - v_f
+                            
+        # LEFT TRIPOD 
+                
+        for i in [0, 2, 4]:
+            if (t_d <= t < t_d + t_f):
+                self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
+                self.cmd_vel[i] = v_f
+                            
+            elif (t_d + t_f <= t < t_c):
+                self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
+                self.cmd_vel[i] = v_s    
+                        
+            elif (0 <= t < t_d):
+                self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
+                self.cmd_vel[i] = v_s
+            
     def run(self):
         
         if (self.simple_walker_enable):
             
             # SIT
             if (self.state == 1):   
-                
-                self.cmd_kp = [8.0, 8.0, 8.0, 8.0, 8.0, 8.0]
-                self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35] 
-                for i, pos in enumerate(self.currPos):
-                    if (-math.pi  <= pos < -1.0):
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = -1.3
-                        self.cmd_vel[i] = -0.
-                    elif (-1.0 <= pos < 1.0):
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = -1.3
-                        self.cmd_vel[i] = -0.5
-                    elif (1.0 <= pos<= 3.14):
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = 2*math.pi -1.3
-                        self.cmd_vel[i] = 0.5
-                        
+                self.simple_sit()
+                       
             # SIAND
             if (self.state == 2):  
-                  
-                self.cmd_kp = [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
-                self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
-                
-                for i, pos in enumerate(self.currPos):
-                    if -3.14 < pos < -0.4:
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = 0.0
-                        self.cmd_vel[i] = 0.5
-                        
-                    elif -0.4 <= pos <= 0.4:
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = 0.0
-                        self.cmd_vel[i] = 0.0
-                        
-                    elif 0.4 <= pos < 1.0:
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = 0.0
-                        self.cmd_vel[i] = -0.5
-                        
-                    elif 1.0 <= pos < 3.14:
-                        self.cmd_tau[i] = 0.0
-                        self.cmd_pos[i] = 3.14
-                        self.cmd_vel[i] = 0.5
-                        
+                self.simple_stand()
+                       
             # WALK 
-            if (self.state == 3):   
-                elapsed_time = ((time.time() - self.start_time)) * self.simulation_speedup
+            if (self.state == 3): 
+                self.simple_walk()  
+  
+            # RUN 
+            if (self.state == 4):
+                self.simple_run()
                 
-                
-                t_c = 2.0
-                t_s = 1.0 
-                t_f = t_c - t_s
-                t_d = 0.01 
-                phi_s = 0.6
-                
-                t = elapsed_time % t_c
-                
-                v_s = phi_s / t_s
-                v_f = (2*math.pi - phi_s)/(t_c - t_s)
-                
-                self.cmd_kp = [14.75, 14.75, 14.75, 14.75, 14.75, 14.75]
-                self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
-                self.cmd_tau = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-                
-                
-                # RIGHT TRIPOD
-                for i in [1, 3, 5]: 
-                    if (0 <= t < t_s):
-                        self.cmd_pos[i] = v_s *t - phi_s/2
-                        self.cmd_vel[i] = v_s
-                            
-                    elif (t_s <= t < t_c):
-                        self.cmd_pos[i] = v_f * (t - t_s) + phi_s/2
-                        self.cmd_vel[i] = v_f
-                            
-                # LEFT TRIPOD 
-                
-                for i in [0, 2, 4]:
-                    if (t_d <= t < t_d + t_f):
-                        self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
-                        self.cmd_vel[i] = v_f
-                            
-                    elif (t_d + t_f <= t < t_c):
-                        self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
-                        self.cmd_vel[i] = v_s    
-                        
-                    elif (0 <= t < t_d):
-                        self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
-                        self.cmd_vel[i] = v_s
-            
-            # 
-            if (self.state == 4):   
-                elapsed_time = ((time.time() - self.start_time)) * self.simulation_speedup
-                
-                
-                t_c = 0.5
-                t_s = 0.25
-                t_f = t_c - t_s
-                t_d = 0.01 
-                phi_s = 0.6
-                
-                t = elapsed_time % t_c
-                
-                v_s = phi_s / t_s
-                v_f = (2*math.pi - phi_s)/(t_c - t_s)
-                
-                self.cmd_kp = [14.75, 14.75, 14.75, 14.75, 14.75, 14.75]
-                self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
-                self.cmd_tau = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-                
-                
-                # RIGHT TRIPOD
-                for i in [1, 3, 5]: 
-                    if (0 <= t < t_s):
-                        self.cmd_pos[i] = v_s *t - phi_s/2
-                        self.cmd_vel[i] = v_s
-                            
-                    elif (t_s <= t < t_c):
-                        self.cmd_pos[i] = v_f * (t - t_s) + phi_s/2
-                        self.cmd_vel[i] = v_f
-                            
-                # LEFT TRIPOD 
-                
-                for i in [0, 2, 4]:
-                    if (t_d <= t < t_d + t_f):
-                        self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
-                        self.cmd_vel[i] = v_f
-                            
-                    elif (t_d + t_f <= t < t_c):
-                        self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
-                        self.cmd_vel[i] = v_s    
-                        
-                    elif (0 <= t < t_d):
-                        self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
-                        self.cmd_vel[i] = v_s
-                   
             # TURN RIGHT
-            if (self.state == 5):   
-                elapsed_time = ((time.time() - self.start_time)) * self.simulation_speedup
+            if (self.state == 5): 
+                self.simple_turn_right()
                 
-                
-                t_c = 2.0
-                t_s = 1.0
-                t_f = t_c - t_s
-                t_d = 0.0
-                phi_s = 0.6
-                
-                t = elapsed_time % t_c
-                
-                v_s = phi_s / t_s
-                v_f = (2*math.pi - phi_s)/(t_c - t_s)
-                
-                self.cmd_kp = [10.75, 10.75, 10.75, 10.75, 10.75, 10.75]
-                self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
-                self.cmd_tau = [-2.0, 0.0, -2.0, 0.0, -2.0, 0.0]
-                
-                
-                # RIGHT TRIPOD
-                for i in [1, 3, 5]: 
-                    if (0 <= t < t_s):
-                        self.cmd_pos[i] = v_s *t - phi_s/2
-                        self.cmd_vel[i] = v_s
-                            
-                    elif (t_s <= t < t_c):
-                        self.cmd_pos[i] = v_f * (t - t_s) + phi_s/2
-                        self.cmd_vel[i] = v_f
-                            
-                # LEFT TRIPOD 
-                
-                for i in [0, 2, 4]:
-                    if (t_d <= t < t_d + t_f):
-                        self.cmd_pos[i] = - v_f *(t - t_d) - phi_s/2
-                        self.cmd_vel[i] = - v_f
-                            
-                    elif (t_d + t_f <= t < t_c):
-                        self.cmd_pos[i] = - v_s * (t- (t_d + t_f)) - (2* math.pi - phi_s/2)
-                        self.cmd_vel[i] = - v_s    
-                        
-                    elif (0 <= t < t_d):
-                        self.cmd_pos[i] = - v_s * (t + t_s - t_d) - (2* math.pi -phi_s/2)
-                        self.cmd_vel[i] = - v_s
-            
             # TURN LEFT
-            if (self.state == 6):   
-                elapsed_time = ((time.time() - self.start_time)) * self.simulation_speedup
-                
-                
-                t_c = 2.0
-                t_s = 1.0
-                t_f = t_c - t_s
-                t_d = 0.0
-                phi_s = 0.6
-                
-                t = elapsed_time % t_c
-                
-                v_s = phi_s / t_s
-                v_f = (2*math.pi - phi_s)/(t_c - t_s)
-                
-                self.cmd_kp = [10.75, 10.75, 10.75, 10.75, 10.75, 10.75]
-                self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
-                self.cmd_tau = [0.0, -2.0, 0.0, -2.0, 0.0, -2.0]
-                
-                
-                # RIGHT TRIPOD
-                for i in [1, 3, 5]: 
-                    if (0 <= t < t_s):
-                        self.cmd_pos[i] = - v_s *t + phi_s/2
-                        self.cmd_vel[i] = - v_s
-                            
-                    elif (t_s <= t < t_c):
-                        self.cmd_pos[i] = - v_f * (t - t_s) - phi_s/2
-                        self.cmd_vel[i] = - v_f
-                            
-                # LEFT TRIPOD 
-                
-                for i in [0, 2, 4]:
-                    if (t_d <= t < t_d + t_f):
-                        self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
-                        self.cmd_vel[i] = v_f
-                            
-                    elif (t_d + t_f <= t < t_c):
-                        self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
-                        self.cmd_vel[i] = v_s    
-                        
-                    elif (0 <= t < t_d):
-                        self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
-                        self.cmd_vel[i] = v_s
-                   
+            if (self.state == 6):
+                self.simple_turn_left()
 
              
         self.simple_walker_enable = self.get_parameter('simple_walker_enable').get_parameter_value().bool_value
