@@ -22,7 +22,7 @@ To launch Gazebo:
     -launching gazebo: ros2 launch rhex_gazebo simple_start_sim.launch.py
 To launch the controller node:
     -launching controller: ros2 launch rhex_control simple_start_controller_server.launch.py
-To run the python file with all six modes (sitting, standing, walking1, walking2, turning right, turning left, dancing) that sends terminal commands to shell:
+To run the python file with all six modes (sitting, standing, walking1, walking2, turning right, turning left) that sends terminal commands to shell:
     -python3 /home/rhex/mnt/rhex_ws/src/rhex_control/scripts/buttons.py
 
 VIDEO W ALL MODES DISPLAYED: https://drive.google.com/file/d/1duyPT5W0YsQ4HCWbGiJFwrvNbzAWRvWE/view?usp=sharing
