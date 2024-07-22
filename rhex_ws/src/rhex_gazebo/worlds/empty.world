@@ -865,221 +865,11 @@
       </plugin>
       <pose>0 0 0.1 0 -0 0</pose>
     </model>
-    <model name='person_walking'>
-      <link name='link'>
-        <inertial>
-          <pose>0 0 0.95 0 -0 0</pose>
-          <mass>80</mass>
-          <inertia>
-            <ixx>27.82</ixx>
-            <ixy>0</ixy>
-            <ixz>0</ixz>
-            <iyy>24.88</iyy>
-            <iyz>0</iyz>
-            <izz>4.57</izz>
-          </inertia>
-        </inertial>
-        <collision name='bottom'>
-          <pose>0 0 0.01 0 -0 0</pose>
-          <geometry>
-            <box>
-              <size>0.35 0.75 0.02</size>
-            </box>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <collision name='person'>
-          <pose>0 0 -0.02 0 -0 0</pose>
-          <geometry>
-            <mesh>
-              <uri>model://person_walking/meshes/walking.dae</uri>
-            </mesh>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <visual name='visual'>
-          <pose>0 0 -0.02 0 -0 0</pose>
-          <geometry>
-            <mesh>
-              <uri>model://person_walking/meshes/walking.dae</uri>
-            </mesh>
-          </geometry>
-        </visual>
-        <self_collide>0</self_collide>
-        <enable_wind>0</enable_wind>
-        <kinematic>0</kinematic>
-      </link>
-      <pose>0.333602 10.6632 0 0 -0 0</pose>
-    </model>
-    <model name='person_standing'>
-      <link name='link'>
-        <inertial>
-          <pose>0 -0.1 0.95 0 -0 0</pose>
-          <mass>80</mass>
-          <inertia>
-            <ixx>24.88</ixx>
-            <ixy>0</ixy>
-            <ixz>0</ixz>
-            <iyy>25.73</iyy>
-            <iyz>0</iyz>
-            <izz>2.48</izz>
-          </inertia>
-        </inertial>
-        <collision name='bottom'>
-          <pose>0 -0.1 0.01 0 -0 0</pose>
-          <geometry>
-            <box>
-              <size>0.5 0.35 0.02</size>
-            </box>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <collision name='person'>
-          <pose>0 0 0.02 0.04 -0 0</pose>
-          <geometry>
-            <mesh>
-              <uri>model://person_standing/meshes/standing.dae</uri>
-            </mesh>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <visual name='visual'>
-          <pose>0 0 0.02 0.04 -0 0</pose>
-          <geometry>
-            <mesh>
-              <uri>model://person_standing/meshes/standing.dae</uri>
-            </mesh>
-          </geometry>
-        </visual>
-        <self_collide>0</self_collide>
-        <enable_wind>0</enable_wind>
-        <kinematic>0</kinematic>
-      </link>
-      <pose>-3.24211 0.008518 0 0 -0 0</pose>
-    </model>
-    <model name='person_standing_0'>
-      <link name='link'>
-        <inertial>
-          <pose>0 -0.1 0.95 0 -0 0</pose>
-          <mass>80</mass>
-          <inertia>
-            <ixx>24.88</ixx>
-            <ixy>0</ixy>
-            <ixz>0</ixz>
-            <iyy>25.73</iyy>
-            <iyz>0</iyz>
-            <izz>2.48</izz>
-          </inertia>
-        </inertial>
-        <collision name='bottom'>
-          <pose>0 -0.1 0.01 0 -0 0</pose>
-          <geometry>
-            <box>
-              <size>0.5 0.35 0.02</size>
-            </box>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <collision name='person'>
-          <pose>0 0 0.02 0.04 -0 0</pose>
-          <geometry>
-            <mesh>
-              <uri>model://person_standing/meshes/standing.dae</uri>
-            </mesh>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <visual name='visual'>
-          <pose>0 0 0.02 0.04 -0 0</pose>
-          <geometry>
-            <mesh>
-              <uri>model://person_standing/meshes/standing.dae</uri>
-            </mesh>
-          </geometry>
-        </visual>
-        <self_collide>0</self_collide>
-        <enable_wind>0</enable_wind>
-        <kinematic>0</kinematic>
-      </link>
-      <pose>-7.03934 2.00428 0 0 -0 0</pose>
-    </model>
     <state world_name='default'>
-      <sim_time>342 425000000</sim_time>
-      <real_time>291 209372496</real_time>
-      <wall_time>1720521759 77125589</wall_time>
-      <iterations>288473</iterations>
+      <sim_time>448 585000000</sim_time>
+      <real_time>109 647659376</real_time>
+      <wall_time>1721307646 552311188</wall_time>
+      <iterations>106160</iterations>
       <model name='ground_plane'>
         <pose>0 0 0 0 -0 0</pose>
         <scale>1 1 1</scale>
@@ -1090,70 +880,50 @@
           <wrench>0 0 0 0 -0 0</wrench>
         </link>
       </model>
-      <model name='person_standing'>
-        <pose>8.68898 3.19622 0 0 1e-06 -1.50456</pose>
-        <scale>1 1 1</scale>
-        <link name='link'>
-          <pose>8.68898 3.19622 0 0 1e-06 -1.50456</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>-0.931712 2.09809 1.29069 -2.11355 -1.11697 -0.113395</acceleration>
-          <wrench>-74.5369 167.847 103.255 0 -0 0</wrench>
-        </link>
-      </model>
-      <model name='person_walking'>
-        <pose>8.29359 -1.4313 -1e-06 -2e-06 1e-06 0.000585</pose>
-        <scale>1 1 1</scale>
-        <link name='link'>
-          <pose>8.29359 -1.4313 -1e-06 -2e-06 1e-06 0.000585</pose>
-          <velocity>0 0 0 0 -0 0</velocity>
-          <acceleration>0.967613 2.04194 -2.65401 -2.12992 1.06057 0.106137</acceleration>
-          <wrench>77.4091 163.355 -212.32 0 -0 0</wrench>
-        </link>
-      </model>
       <model name='rhex'>
-        <pose>-0.026088 0.004662 0.056011 0 4e-06 0.007542</pose>
+        <pose>-0.034856 0.005915 0.056012 -2e-06 0 0.010731</pose>
         <scale>1 1 1</scale>
         <link name='base_link'>
-          <pose>-0.026088 0.004662 0.056011 0 4e-06 0.007542</pose>
-          <velocity>0.000209 4.6e-05 -0.000588 -0.000141 0.0037 0.000229</velocity>
-          <acceleration>1.47703 0.068194 -4.04728 0.398809 0.35255 0.231091</acceleration>
-          <wrench>18.6785 0.862387 -51.1819 0 -0 0</wrench>
+          <pose>-0.034856 0.005915 0.056012 -2e-06 0 0.010731</pose>
+          <velocity>3.8e-05 -0.001914 0.001705 0.034165 0.000672 -2e-06</velocity>
+          <acceleration>0.059138 -4.07465 3.31426 -1.84609 1.49492 3.13901</acceleration>
+          <wrench>0.747854 -51.528 41.9121 0 -0 0</wrench>
         </link>
         <link name='front_left_link'>
-          <pose>0.162968 0.129589 0.056022 -3.14155 -1.27996 -3.13407</pose>
-          <velocity>-0.00035 0.000431 -0.000248 -0.003387 -0.006404 -0.003213</velocity>
-          <acceleration>1.22459 0.292392 -9.04174 -1.42121 0.390308 -0.070298</acceleration>
-          <wrench>0.06123 0.01462 -0.452087 0 -0 0</wrench>
+          <pose>0.153809 0.131447 0.05601 3.14132 -1.27967 -3.13057</pose>
+          <velocity>0.00184 -0.002617 0.002851 0.035173 0.035213 0.008766</velocity>
+          <acceleration>6.34056 -5.76959 -0.992195 -2.36761 -1.46517 1.48722</acceleration>
+          <wrench>0.317028 -0.288479 -0.04961 0 -0 0</wrench>
         </link>
         <link name='front_right_link'>
-          <pose>0.164832 -0.117404 0.056019 -3.14152 -1.27979 -3.13409</pose>
-          <velocity>-0.000318 -9.2e-05 -0.000483 -0.001144 -0.007376 0.002623</velocity>
-          <acceleration>1.23151 0.165009 -9.14923 -0.360434 1.32033 -2.86156</acceleration>
-          <wrench>0.061576 0.00825 -0.457462 0 -0 0</wrench>
+          <pose>0.156457 -0.11554 0.056014 -3.14149 -1.27973 -3.13097</pose>
+          <velocity>-0.000618 -0.002305 -0.001557 0.034828 -0.013012 0.005129</velocity>
+          <acceleration>-1.99108 -5.49056 -0.965288 2.77059 -0.224654 2.75429</acceleration>
+          <wrench>-0.099554 -0.274528 -0.048264 0 -0 0</wrench>
         </link>
         <link name='mid_left_link'>
-          <pose>-0.027318 0.166657 0.056023 3.14159 -1.27994 -3.13405</pose>
-          <velocity>-0.000215 0.000153 -0.000122 -0.00111 -0.003925 -0.001215</velocity>
-          <acceleration>1.41489 0.115027 -4.97365 2.24142 -1.01423 -1.18559</acceleration>
-          <wrench>0.070745 0.005751 -0.248682 0 -0 0</wrench>
+          <pose>-0.036598 0.167903 0.056017 -3.14154 -1.27988 -3.13089</pose>
+          <velocity>0.00232 -0.001919 0.003658 0.034053 0.041461 0.00015</velocity>
+          <acceleration>1.85594 -5.55385 9.97575 -0.50432 -1.35268 -1.76938</acceleration>
+          <wrench>0.092797 -0.277692 0.498788 0 -0 0</wrench>
         </link>
         <link name='mid_right_link'>
-          <pose>-0.024871 -0.157333 0.056019 -3.14159 -1.27991 -3.13406</pose>
-          <velocity>-0.000103 -5.5e-05 3.7e-05 -0.001179 -0.00178 0.001605</velocity>
-          <acceleration>1.57519 0.125027 -4.91043 2.60485 1.13377 -0.108327</acceleration>
-          <wrench>0.07876 0.006251 -0.245521 0 -0 0</wrench>
+          <pose>-0.033117 -0.156078 0.05602 -3.14145 -1.27981 -3.13097</pose>
+          <velocity>-0.002008 -0.002228 -0.003316 0.039223 -0.03691 0.000869</velocity>
+          <acceleration>-5.87902 -7.41821 -1.42572 -1.3364 0.609673 0.609959</acceleration>
+          <wrench>-0.293951 -0.37091 -0.071286 0 -0 0</wrench>
         </link>
         <link name='rear_left_link'>
-          <pose>-0.217023 0.126725 0.056025 3.14151 -1.27996 -3.13396</pose>
-          <velocity>0.000217 0.000177 0.000601 -0.004346 0.003886 0.000881</velocity>
-          <acceleration>2.025 0.3741 -0.703431 -0.025513 0.467543 -2.07563</acceleration>
-          <wrench>0.10125 0.018705 -0.035172 0 -0 0</wrench>
+          <pose>-0.226173 0.127369 0.056017 -3.14159 -1.27981 -3.13086</pose>
+          <velocity>0.001741 -0.00235 0.002943 0.034642 0.03256 0.005545</velocity>
+          <acceleration>5.34513 -5.79183 -0.23694 -1.22062 1.09683 -1.67606</acceleration>
+          <wrench>0.267256 -0.289591 -0.011847 0 -0 0</wrench>
         </link>
         <link name='rear_right_link'>
-          <pose>-0.215154 -0.120267 0.056017 -3.14159 -1.27983 -3.13406</pose>
-          <velocity>0.000187 -1.7e-05 0.000352 -0.001389 0.003254 0.001261</velocity>
-          <acceleration>1.98098 0.1415 -0.850665 2.04818 -0.118313 -0.331011</acceleration>
-          <wrench>0.099049 0.007075 -0.042533 0 -0 0</wrench>
+          <pose>-0.223524 -0.119615 0.056019 3.14154 -1.27986 -3.13082</pose>
+          <velocity>-0.001072 -0.001433 -0.00104 0.03473 -0.022072 -0.007329</velocity>
+          <acceleration>-2.5955 -5.66094 0.081322 -0.950994 -1.42348 0.061963</acceleration>
+          <wrench>-0.129775 -0.283047 0.004066 0 -0 0</wrench>
         </link>
       </model>
       <light name='sun'>
@@ -1162,7 +932,7 @@
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose>5.15979 -9.44993 4.40417 0 0.359643 1.5962</pose>
+        <pose>-0.660402 -9.52005 4.61093 0 0.359643 1.5962</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>
@@ -1935,146 +1705,6 @@
         <parameters>/home/rhex/mnt/rhex_ws/install/rhex_description/share/rhex_description/config/ros_control.yaml</parameters>
       </plugin>
       <pose>0 0 0.1 0 -0 0</pose>
-    </model>
-    <model name='person_standing'>
-      <link name='link'>
-        <inertial>
-          <pose>0 -0.1 0.95 0 -0 0</pose>
-          <mass>80</mass>
-          <inertia>
-            <ixx>24.88</ixx>
-            <ixy>0</ixy>
-            <ixz>0</ixz>
-            <iyy>25.73</iyy>
-            <iyz>0</iyz>
-            <izz>2.48</izz>
-          </inertia>
-        </inertial>
-        <collision name='bottom'>
-          <pose>0 -0.1 0.01 0 -0 0</pose>
-          <geometry>
-            <box>
-              <size>0.5 0.35 0.02</size>
-            </box>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <collision name='person'>
-          <pose>0 0 0.02 0.04 -0 0</pose>
-          <geometry>
-            <mesh>
-              <uri>model://person_standing/meshes/standing.dae</uri>
-            </mesh>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <visual name='visual'>
-          <pose>0 0 0.02 0.04 -0 0</pose>
-          <geometry>
-            <mesh>
-              <uri>model://person_standing/meshes/standing.dae</uri>
-            </mesh>
-          </geometry>
-        </visual>
-        <self_collide>0</self_collide>
-        <enable_wind>0</enable_wind>
-        <kinematic>0</kinematic>
-      </link>
-      <pose>8.68895 3.19623 0 0 -0 0</pose>
-    </model>
-    <model name='person_walking'>
-      <link name='link'>
-        <inertial>
-          <pose>0 0 0.95 0 -0 0</pose>
-          <mass>80</mass>
-          <inertia>
-            <ixx>27.82</ixx>
-            <ixy>0</ixy>
-            <ixz>0</ixz>
-            <iyy>24.88</iyy>
-            <iyz>0</iyz>
-            <izz>4.57</izz>
-          </inertia>
-        </inertial>
-        <collision name='bottom'>
-          <pose>0 0 0.01 0 -0 0</pose>
-          <geometry>
-            <box>
-              <size>0.35 0.75 0.02</size>
-            </box>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <collision name='person'>
-          <pose>0 0 -0.02 0 -0 0</pose>
-          <geometry>
-            <mesh>
-              <uri>model://person_walking/meshes/walking.dae</uri>
-            </mesh>
-          </geometry>
-          <max_contacts>10</max_contacts>
-          <surface>
-            <contact>
-              <ode/>
-            </contact>
-            <bounce/>
-            <friction>
-              <torsional>
-                <ode/>
-              </torsional>
-              <ode/>
-            </friction>
-          </surface>
-        </collision>
-        <visual name='visual'>
-          <pose>0 0 -0.02 0 -0 0</pose>
-          <geometry>
-            <mesh>
-              <uri>model://person_walking/meshes/walking.dae</uri>
-            </mesh>
-          </geometry>
-        </visual>
-        <self_collide>0</self_collide>
-        <enable_wind>0</enable_wind>
-        <kinematic>0</kinematic>
-      </link>
-      <pose>8.29359 -1.4313 0 0 -0 0</pose>
     </model>
   </world>
 </sdf>
