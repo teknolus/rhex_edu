@@ -18,7 +18,7 @@ RUN apt-get update -y && \
         python3-pip \
         ros-humble-gazebo-* -y
 
-RUN pip3 install gdown
+RUN pip3 install gdown flask
 
 # Add user, so the files created in the container are not owned by root
 # Following operations needs 'sudo' to be installed
@@ -54,3 +54,7 @@ RUN echo "source /usr/share/gazebo/setup.sh" >> ~/.bashrc
 # Clean up APT cache to reduce the image size
 RUN sudo apt-get clean && \
     sudo rm -rf /var/lib/apt/lists/*
+
+# Expose port 5000
+EXPOSE 5000
+
