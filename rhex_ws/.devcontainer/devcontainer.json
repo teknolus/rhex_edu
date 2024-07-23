@@ -17,7 +17,7 @@
 		"NVIDIA_DRIVER_CAPABILITIES": "all",
 		"ROS_DOMAIN_ID": "110"  // Replace 54 with your chosen unique domain ID
 	},
-	"forwardPorts": [],
+	"forwardPorts": []
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "docker --version",
