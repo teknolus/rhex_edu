@@ -31,7 +31,7 @@ VIDEO W ALL MODES DISPLAYED: https://drive.google.com/file/d/1duyPT5W0YsQ4HCWbGi
 
 
 
-class SimpleWalker(Node):
+class TestRobot(Node):
     
     """
     A class for creating a ROS node that publishes torque commands to /effort_controller/commands.
@@ -75,7 +75,7 @@ class SimpleWalker(Node):
     """
     
     def __init__(self):
-        super().__init__('simple_walker')
+        super().__init__('test_robot')
         
         
         # declared parameters for communicating with the terminal 
@@ -127,7 +127,7 @@ class SimpleWalker(Node):
         # run function publishes commands every 0.0025 second 
         self.create_timer(0.0025, self.run)  
         
-        self.get_logger().info("**************SimpleWalker initialized****************")
+        self.get_logger().info("**************test_robot initialized****************")
         
 
            
@@ -169,49 +169,37 @@ class SimpleWalker(Node):
         return list(commTorque[[2, 5, 1, 4, 0, 3]])
     
     def simple_sit (self): 
-        
-        self.cmd_kp = [8.0] * 6
-        self.cmd_kd = [0.35] * 6 
+
         for i, pos in enumerate(self.currPos):
             
                 if (-math.pi  <= pos < -1.0):
-                    self.cmd_tau[i] = 0.0
                     self.cmd_pos[i] = -1.3
                     self.cmd_vel[i] = 0.0
                     
                 elif (-1.0 <= pos < 1.0):
-                    self.cmd_tau[i] = 0.0
                     self.cmd_pos[i] = -1.3
                     self.cmd_vel[i] = -0.5
                     
                 elif (1.0 <= pos<= 3.14):
-                    self.cmd_tau[i] = 0.0
                     self.cmd_pos[i] = 2*math.pi -1.3
                     self.cmd_vel[i] = 0.5
                  
     def simple_stand (self):
-              
-        self.cmd_kp = [5.0, 5.0, 5.0, 5.0, 5.0, 5.0]
-        self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
                 
         for i, pos in enumerate(self.currPos):
             if -3.14 < pos < -0.4:
-                self.cmd_tau[i] = 0.0
                 self.cmd_pos[i] = 0.0
                 self.cmd_vel[i] = 0.5
                         
             elif -0.4 <= pos <= 0.4:
-                self.cmd_tau[i] = 0.0
                 self.cmd_pos[i] = 0.0
                 self.cmd_vel[i] = 0.0
                         
             elif 0.4 <= pos < 1.0:
-                self.cmd_tau[i] = 0.0
                 self.cmd_pos[i] = 0.0
                 self.cmd_vel[i] = -0.5
                     
             elif 1.0 <= pos < 3.14:
-                self.cmd_tau[i] = 0.0
                 self.cmd_pos[i] = 3.14
                 self.cmd_vel[i] = 0.5
         
@@ -228,10 +216,7 @@ class SimpleWalker(Node):
                 
         v_s = phi_s / t_s
         v_f = (2*math.pi - phi_s)/(t_c - t_s)
-                
-        self.cmd_kp = [14.75, 14.75, 14.75, 14.75, 14.75, 14.75]
-        self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
-        self.cmd_tau = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        
                 
                 
         # RIGHT TRIPOD
@@ -271,10 +256,6 @@ class SimpleWalker(Node):
                 
         v_s = phi_s / t_s
         v_f = (2*math.pi - phi_s)/(t_c - t_s)
-                
-        self.cmd_kp = [14.75, 14.75, 14.75, 14.75, 14.75, 14.75]
-        self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
-        self.cmd_tau = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
                 
                 
         # RIGHT TRIPOD
@@ -317,10 +298,6 @@ class SimpleWalker(Node):
         v_s = phi_s / t_s
         v_f = (2*math.pi - phi_s)/(t_c - t_s)
                 
-        self.cmd_kp = [10.75, 10.75, 10.75, 10.75, 10.75, 10.75]
-        self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
-        self.cmd_tau = [-2.0, 0.0, -2.0, 0.0, -2.0, 0.0]
-                
                 
         # RIGHT TRIPOD
         for i in [1, 3, 5]: 
@@ -360,10 +337,6 @@ class SimpleWalker(Node):
                 
         v_s = phi_s / t_s
         v_f = (2*math.pi - phi_s)/(t_c - t_s)
-                
-        self.cmd_kp = [10.75, 10.75, 10.75, 10.75, 10.75, 10.75]
-        self.cmd_kd = [0.35, 0.35, 0.35, 0.35, 0.35, 0.35]
-        self.cmd_tau = [0.0, -2.0, 0.0, -2.0, 0.0, -2.0]
                 
                 
         # RIGHT TRIPOD
@@ -422,6 +395,10 @@ class SimpleWalker(Node):
              
         self.simple_walker_enable = self.get_parameter('simple_walker_enable').get_parameter_value().bool_value
         self.state = self.get_parameter('state').get_parameter_value().integer_value
+        self.cmd_tau = self.get_parameter('cmd_tau').get_parameter_value().double_array_value
+        self.cmd_kd = self.get_parameter('cmd_kd').get_parameter_value().double_array_value
+        self.cmd_kp = self.get_parameter('cmd_kp').get_parameter_value().double_array_value
+
 
         if self.newdata:
             torque = Float64MultiArray()
@@ -432,7 +409,7 @@ class SimpleWalker(Node):
         
 def main (args = None):
     rclpy.init(args = args)
-    node = SimpleWalker()
+    node = TestRobot()
     
     try:
         rclpy.spin(node)

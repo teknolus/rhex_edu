@@ -19,10 +19,17 @@ install(
 
 
 
-
 install(
   PROGRAMS
     scripts/simple_walker.py
+  DESTINATION
+    lib/${PROJECT_NAME}
+)
+
+
+install(
+  PROGRAMS
+    scripts/test_robot.py
   DESTINATION
     lib/${PROJECT_NAME}
 )
