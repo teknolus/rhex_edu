@@ -95,11 +95,6 @@ void handleClient(int client_socket, RHexAPI& rhex) {
             std::cerr << "Unable to update connection status file\n";
         }
     } else if (command == "WALK") {
-        // rhex.SetMode( RHexMode::STAND );
-        // while (rhex.GetMode() != RHexMode::STAND) usleep(100000);
-        // int sleeptime = 3;
-        // while (sleeptime != 0) sleeptime = sleep(sleeptime);
-
         rhex.SetMode(RHexMode::WALK);
         while (rhex.GetMode() != RHexMode::WALK) usleep(100000);
         std::string response = "Robot is now in WALK mode.";
@@ -125,6 +120,10 @@ void handleClient(int client_socket, RHexAPI& rhex) {
         wc.turning_speed = -0.15;
         rhex.SetWalkCommand(wc);
     } else if (command == "CALIBRATE") {
+        rhex.SetMode(RHexMode::SIT);
+        while (rhex.GetMode() != RHexMode::SIT) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
         rhex.SetMode( RHexMode::CALIBRATION );
         while (rhex.GetMode() != RHexMode::CALIBRATION) usleep(100000);
         CalibrationCommand_t cc;
