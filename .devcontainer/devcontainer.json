@@ -4,7 +4,7 @@
         "dockerfile": "Dockerfile",
         "context": "../.."
     },
-
+    "runArgs": ["--network", "host"],
     "containerEnv": {
         "DISPLAY": "${env:DISPLAY}",
         "NVIDIA_VISIBLE_DEVICES": "all",
@@ -18,6 +18,11 @@
 
     "mounts": [
        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
+    ],
+
+    "appPort": [
+        5000,
+        5001
     ],
 
     "otherPortsAttributes": {

@@ -4,6 +4,7 @@ FROM osrf/ros:humble-desktop-full
 ARG DEBIAN_FRONTEND=noninteractive
 
 # Set SHELL to use bash for the following RUN commands
+# Define environment variable for default shell
 SHELL ["/bin/bash", "-c"]
 ENV SHELL=/bin/bash
 
@@ -15,11 +16,21 @@ RUN apt-get update -y && \
         git \
         cmake \
         python3-pip \
-        ros-humble-gazebo-* -y
+        ros-humble-gazebo-* \
+        libgstreamer1.0-dev \
+        libgstreamer-plugins-base1.0-dev \
+        libargon2-dev \
+        && sudo apt-get clean && \
+        sudo rm -rf /var/lib/apt/lists/*
+
 
 RUN pip3 install gdown flask
 
 # Add user, so the files created in the container are not owned by root
+# Following operations needs 'sudo' to be installed
+
+# Add a new user 'rhex' to use instead of 'root' for better security practices
+# Configure user with no-password sudo access
 ARG USERNAME=rhex
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -46,5 +57,6 @@ ENV RHEX_API_DIR=/home/${USERNAME}/robot/rhex-api
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 RUN echo "source /usr/share/gazebo/setup.sh" >> ~/.bashrc
 
-# Expose port 5000
-EXPOSE 5000
+# Clean up APT cache to reduce the image size
+RUN sudo apt-get clean && \
+    sudo rm -rf /var/lib/apt/lists/*
