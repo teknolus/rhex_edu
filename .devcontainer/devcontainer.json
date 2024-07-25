@@ -23,6 +23,7 @@
         "onAutoForward": "ignore"
     },
 
+    "appPort": [5000],
     "customizations": {
         "vscode": {
             "extensions": [

@@ -16,7 +16,13 @@ RUN apt-get update -y && \
         git \
         cmake \
         python3-pip \
-        ros-humble-gazebo-* -y
+        ros-humble-gazebo-* \
+        libgstreamer1.0-dev \
+        libgstreamer-plugins-base1.0-dev \
+        libargon2-dev \
+        && sudo apt-get clean && \
+        sudo rm -rf /var/lib/apt/lists/*
+
 
 RUN pip3 install gdown flask
 
@@ -54,7 +60,4 @@ RUN echo "source /usr/share/gazebo/setup.sh" >> ~/.bashrc
 # Clean up APT cache to reduce the image size
 RUN sudo apt-get clean && \
     sudo rm -rf /var/lib/apt/lists/*
-
-# Expose port 5000
-EXPOSE 5000
 
