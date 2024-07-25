@@ -2,6 +2,24 @@ import tkinter as tk
 from tkinter import ttk
 from subprocess import run
 
+"""
+
+Simple Walker: includes latest kp, kd values for all modes 
+Test Robot: used for tuning and testing 
+
+
+Terminal Commands to run the controller node:
+To launch Gazebo:
+    -launching gazebo: ros2 launch rhex_gazebo simple_start_sim.launch.py
+To launch the controller node:
+    -launching controller: ros2 launch rhex_control testing_robot.launch.py
+To run the python file with all six modes (sitting, standing, walking1, walking2, turning right, turning left) that sends terminal commands to shell:
+    -python3 /home/rhex/mnt/rhex_ws/src/rhex_control/scripts/buttons.py
+
+VIDEO W ALL MODES DISPLAYED: https://drive.google.com/file/d/1arEcORUtS3V-_sBvuCeJuXanO_ZIv3YA/view?usp=sharing
+"""
+
+
 def send_command(command):
     run(command, shell=True)
 
