@@ -74,7 +74,7 @@ class LegController(Node):
         self.cmd_enabled = False
 
         self.lock = threading.Lock()
-        self.exitThread = False
+        self.exitThread = False  
 
         self.get_logger().info("\n\n---------------------- The node is ready! ----------------------\n\n")
 
