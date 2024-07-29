@@ -119,34 +119,52 @@ void handleClient(int client_socket, RHexAPI& rhex) {
         wc.direction = MovementDirection::STOP;
         wc.turning_speed = -0.15;
         rhex.SetWalkCommand(wc);
-    } else if (command == "CALIBRATE") {
-        rhex.SetMode(RHexMode::SIT);
-        while (rhex.GetMode() != RHexMode::SIT) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-        rhex.SetMode( RHexMode::CALIBRATION );
-        while (rhex.GetMode() != RHexMode::CALIBRATION) usleep(100000);
-        CalibrationCommand_t cc;
-        bool calibrated = false;
-        int retries = 0;
-        cc.type = CalibrationType::SWITCH;
-        rhex.SetCalibrationCommand( cc );
-        int sleeptime = 1;
-        while (sleeptime != 0) sleeptime = sleep(sleeptime);
+    }else if (command == "CALIBRATE") {
+        try {
+            while (true) {
+                rhex.SetMode(RHexMode::SIT);
+                while (rhex.GetMode() != RHexMode::SIT) {
+                    usleep(100000);
+                }
+                sleep(1);
+                
+                rhex.SetMode(RHexMode::CALIBRATION);
+                while (rhex.GetMode() != RHexMode::CALIBRATION) {
+                    usleep(100000);
+                }
+                CalibrationCommand_t cc;
+                cc.type = CalibrationType::GROUND;
+                rhex.SetCalibrationCommand(cc);
+                sleep(1);
+                bool calibrated = false;
+                int retries = 0;
+                
+                while (!calibrated) {
+                    retries++;
+                    CalibrationState_t cs = rhex.GetCalibrationState();
+                    calibrated = true;
+                    for (int i = 0; i < 6; i++) {
+                        if (cs.leg_status[i] != CalibrationStatus::CALIBRATED) {
+                            calibrated = false;
+                        }
+                    }
+                    if (retries > 300) {
+                        break;
+                    }
+                    usleep(10000);
+                }
 
-        while (!calibrated) {
-            retries++;
-            CalibrationState_t cs = rhex.GetCalibrationState();
-            calibrated = true;
-            for (int i = 0; i < 6; i++)
-                if (cs.leg_status[i] != CalibrationStatus::CALIBRATED) calibrated = false;
-            if (retries > 300) {
-                printf("Could not calibrate\n");
+                if (calibrated) {
+                    std::string response = "Calibration successful.";
+                    send(client_socket, response.c_str(), response.length(), 0);
+                    break;
+                }
             }
-            usleep(10000);
+        } catch (const std::runtime_error& e) {
+            std::string error = "Exception caught during calibration: " + std::string(e.what());
+            send(client_socket, error.c_str(), error.length(), 0);
         }
-    }
-    else {
+    }  else {
         std::string response = "Invalid command.";
         send(client_socket, response.c_str(), response.length(), 0);
     }
