@@ -27,60 +27,19 @@ To launch the controller node:
 To run the python file with all six modes (sitting, standing, walking1, walking2, turning right, turning left) that sends terminal commands to shell:
     -python3 /home/rhex/mnt/rhex_ws/src/rhex_control/scripts/buttons.py
 
-VIDEO W ALL MODES DISPLAYED: https://drive.google.com/file/d/1arEcORUtS3V-_sBvuCeJuXanO_ZIv3YA/view?usp=sharing
 """
 
 
 
+
 class SimpleWalker(Node):
-    
-    """
-    A class for creating a ROS node that publishes torque commands to /effort_controller/commands.
-
-    This node uses a PD controller to generate torque commands based on the given state and parameters.
-
-    Attributes:
-        cmd_kp (float np array): Proportional gain parameter for the PD controller.
-        cmd_kd(float np array): derivative gain parameter for the PD controller.
-        cmd_tau (float np array): desired torque for the PD controller.
-        cmd_vel (float np array): desired velocity for the PD controller.
-        cmd_pos (float np array): desired pose for the PD controller.
-        
-        state (int): State parameter indicating the current mode or task of the walker.
-        simple_walker_enable (bool): Enables/disables the SimpleWalker node.
-
-    Methods:
-        __init__(self):
-            Initializes the SimpleWalker node and sets up necessary variables, parameters, publishers and subscribers.
-
-        callback_position(self, msg)
-            Updates globalPos via node's subscription to /odom/robot_pos
-            
-        joint_state_callback(self, msg)
-            Updates current pose, velocity, and torque via node's subscription to /joint_states
-        
-        imu_callback(self, msg)
-            Updates current pose via node's subscription to /imu/data 
-
-        print_joint_state(self)
-            Prints current pose whenever it is called 
-            
-        compute_controls(self)
-            Calculates the torque output of the PD controller given desired torque, velocity, and pose 
-            
-        def run(self)
-            Includes the states, calls the compute_controls, and publishes commands to /effort_controller/commands 
-
-    Usage:
-        Create an instance of SimpleWalker, set parameters via ROS parameter server, and start the node to publish torque commands.
-    """
     
     def __init__(self):
         super().__init__('simple_walker')
         
         
         # declared parameters for communicating with the terminal 
-        self.declare_parameter('state', 1)
+        self.declare_parameter('state', 10)
         self.declare_parameter('simple_walker_enable', False)
         self.declare_parameter('cmd_tau', [0.0]*6)
         self.declare_parameter('cmd_vel', [0.0]*6)
@@ -88,12 +47,10 @@ class SimpleWalker(Node):
         self.declare_parameter('cmd_kp', [0.0]*6)
         self.declare_parameter('cmd_kd', [0.0]*6)
         self.declare_parameter('delta_t_s', 0.0)
-
-        
+                
         
         
         # variables 
-        
         self.newdata = False
         self.simple_walker_enable = False
         self.state = 1
@@ -109,7 +66,17 @@ class SimpleWalker(Node):
         self.globalPos = np.zeros(3)
         self.counter = 0 
         self.delta_t_s = 0.0
-       
+
+        #sitting params 
+        self.start_sitting = [True] * 6 
+        self.sit_start_time = [0.0] * 6
+
+        #standing params 
+        self.start_standing = [True] * 6
+        self.stand_start_time = [0.0] * 6
+
+        self.a = [0.0] * 6
+        self.b= [0.0] * 6
         
         # TOPICS
         self.publisher = self.create_publisher(Float64MultiArray, '/effort_controller/commands', 10)
@@ -123,7 +90,7 @@ class SimpleWalker(Node):
         # self.simulation_speedup = 1.0 (no longer using real time clock so not needed.)
 
         # run function publishes commands every 0.0025 second 
-        self.create_timer(0.0005, self.run)  
+        self.create_timer(0.001, self.run)  
         #self.create_timer(1, self.print_joint_state)
         #self.create_timer(1.0, self.get_sim_time)
         self.get_logger().info("**************SimpleWalker initialized****************")
@@ -175,32 +142,74 @@ class SimpleWalker(Node):
     
     def simple_sit (self): 
 
-        self.cmd_kp = [6.0] * 6
-        self.cmd_kd = [0.35] * 6
-        for i, pos in enumerate(self.currPos):
-                self.cmd_pos[i] = -1.6
+        # given any initiali position further than 0 point by 0.1, it follows a linear interpolation to reach 0 in t_c time. 
+
+        self.cmd_kp = [20.0] * 6
+        self.cmd_kd = [0.35] * 6 
+        t = [0.0] * 6 
+        t_c = 4.0   
+        
+                
+                
+        for i in range(6): 
+
+            sitting_point = - 1.6
+
+            if -0.2 + sitting_point < self.currPos[i] < 0.2 + sitting_point:
+                self.cmd_pos[i] = sitting_point
                 self.cmd_vel[i] = 0.0
+                self.start_sitting [i] = True 
+            else: 
+                elapsed_duration = self.get_clock().now() - self.sit_start_time[i]
+                t [i] = (elapsed_duration.nanoseconds /1e9)
+            if t[i] < t_c:
+                if self.start_sitting [i]: 
+                    self.b [i] = self.currPos [i] 
+                    self.a [i] = (sitting_point -self.currPos [i])  / t_c 
+                    self.start_sitting [i] = False 
+                    
+                self.cmd_pos[i] = self.a[i] * t [i] + self.b[i] 
+                self.cmd_vel[i] = self.a[i]
+
+            else: 
+                self.cmd_pos[i] = sitting_point
+                self.cmd_vel[i] = 0.0
+                self.start_sitting [i] = True 
                            
     def simple_stand (self):
-        self.cmd_kp = [6.0] * 6
-        self.cmd_kd = [0.35] * 6
-        for i, pos in enumerate(self.currPos):
-            if -3.14 < pos < -0.4:
-                self.cmd_pos[i] = 0.0
-                self.cmd_vel[i] = 0.2
-                        
-            elif -0.4 <= pos <= 0.4:
-                self.cmd_pos[i] = 0.0
-                self.cmd_vel[i] = 0.0
-                        
-            elif 0.4 <= pos < 1.0:
-                self.cmd_pos[i] = 0.0
-                self.cmd_vel[i] = 0.0
-                    
-            elif 1.0 <= pos < 3.14:
-                self.cmd_pos[i] = 3.14
-                self.cmd_vel[i] = 0.2
         
+        # given any initiali position further than 0 point by 0.1, it follows a linear interpolation to reach 0 in t_c time. If not reached withn t_c, directly go there. 
+
+        self.cmd_kp = [20.0] * 6
+        self.cmd_kd = [0.35] * 6 
+        t = [0.0] *6 
+        t_c = 4.0   
+        
+                
+                
+        for i in range(6): 
+
+            if -0.1< self.currPos[i] < 0.1:
+                self.cmd_pos[i] = 0.0
+                self.cmd_vel[i] = 0.0
+                self.start_standing [i] = True 
+            else: 
+                elapsed_duration = self.get_clock().now() - self.stand_start_time[i]
+                t [i] = (elapsed_duration.nanoseconds /1e9)
+            if t[i] < t_c:
+                if self.start_standing [i]: 
+                    self.b [i] = self.currPos [i] 
+                    self.a [i] = -self.currPos [i] / t_c 
+                    self.start_standing [i] = False 
+                    
+                self.cmd_pos[i] = self.a[i] * t [i] + self.b[i] 
+                self.cmd_vel[i] = self.a[i]
+
+            else: 
+                self.cmd_pos[i] = 0.0
+                self.cmd_vel[i] = 0.0
+                self.start_standing [i] = True 
+    
     def simple_walk (self):
         self.cmd_kp = [20.0] * 6
         self.cmd_kd = [0.35] * 6
@@ -428,7 +437,7 @@ class SimpleWalker(Node):
         self.cmd_kd = [0.35] * 6 
 
         current_time = self.get_clock().now()
-        elapsed_duration = ((current_time- self.start_time)) 
+        elapsed_duration = ((current_time - self.start_time)) 
         elapsed_time = elapsed_duration.nanoseconds /1e9
          
         t_c = 1.0
@@ -496,10 +505,22 @@ class SimpleWalker(Node):
             
             # SIT
             if (self.state == 1):   
+
+                for i in range (6):
+                    if (self.start_sitting[i]):
+                        self.sit_start_time[i] = self.get_clock().now()
+
                 self.simple_sit()
-                       
+
             # SIAND
             if (self.state == 2):  
+
+                for i in range (6):
+                    if (self.start_standing[i]) :
+                        self.stand_start_time[i] = self.get_clock().now()
+                    else: 
+                        pass
+
                 self.simple_stand()
                        
             # WALK 
