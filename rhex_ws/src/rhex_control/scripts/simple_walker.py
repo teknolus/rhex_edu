@@ -14,23 +14,6 @@ from nav_msgs.msg import Odometry
 import time 
 import math
 
-"""
-
-Simple Walker: includes latest kp, kd values for all modes 
-Test Robot: used for tuning and testing 
-
-
-Terminal Commands to run the controller node:
-To launch Gazebo:
-    -launching gazebo: ros2 launch rhex_gazebo simple_start_sim.launch.py
-To launch the controller node:
-    -launching controller: ros2 launch rhex_control testing_robot.launch.py
-To run the python file with all six modes (sitting, standing, walking1, walking2, turning right, turning left) that sends terminal commands to shell:
-    -python3 /home/rhex/mnt/rhex_ws/src/rhex_control/scripts/buttons.py
-
-VIDEO W ALL MODES DISPLAYED: https://drive.google.com/file/d/1arEcORUtS3V-_sBvuCeJuXanO_ZIv3YA/view?usp=sharing
-"""
-
 
 
 
@@ -155,39 +138,40 @@ class SimpleWalker(Node):
     
     def simple_sit (self): 
 
-        # given any initiali position further than 0 point by 0.1, it follows a linear interpolation to reach 0 in t_c time. 
+            # given any initiali position further than 0 point by 0.1, it follows a linear interpolation to reach 0 in t_c time. 
 
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6 
-        t = [0.0] * 6 
-        t_c = 4.0   
-        
-                
-                
-        for i in range(6): 
+            self.cmd_kp = [20.0] * 6
+            self.cmd_kd = [0.35] * 6 
+            t = [0.0] * 6 
+            t_c = 4.0   
 
-            sitting_point = - 1.9
 
-            if -0.2 + sitting_point < self.currPos[i] < 0.2 + sitting_point:
-                self.cmd_pos[i] = sitting_point
-                self.cmd_vel[i] = 0.0
-                self.start_sitting [i] = True 
-            else: 
-                elapsed_duration = self.get_clock().now() - self.sit_start_time[i]
-                t [i] = (elapsed_duration.nanoseconds /1e9)
-            if t[i] < t_c:
-                if self.start_sitting [i]: 
-                    self.b [i] = self.currPos [i] 
-                    self.a [i] = (sitting_point -self.currPos [i])  / t_c 
-                    self.start_sitting [i] = False 
-                    
-                self.cmd_pos[i] = self.a[i] * t [i] + self.b[i] 
-                self.cmd_vel[i] = self.a[i]
 
-            else: 
-                self.cmd_pos[i] = sitting_point
-                self.cmd_vel[i] = 0.0
-                self.start_sitting [i] = True 
+            for i in range(6): 
+
+                sitting_point = - 1.9
+
+                if -0.2 + sitting_point < self.currPos[i] < 0.2 + sitting_point:
+                    self.cmd_pos[i] = sitting_point
+                    self.cmd_vel[i] = 0.0
+                    self.start_sitting [i] = True 
+                else: 
+                    elapsed_duration = self.get_clock().now() - self.sit_start_time[i]
+                    t [i] = (elapsed_duration.nanoseconds /1e9)
+                if t[i] < t_c:
+                    if self.start_sitting [i]: 
+                        self.b [i] = self.currPos [i] 
+                        self.a [i] = (sitting_point -self.currPos [i])  / t_c 
+                        self.start_sitting [i] = False 
+
+                    self.cmd_pos[i] = self.a[i] * t [i] + self.b[i] 
+                    self.cmd_vel[i] = self.a[i]
+
+                else: 
+                    self.cmd_pos[i] = sitting_point
+                    self.cmd_vel[i] = 0.0
+                    self.start_sitting [i] = True 
+
                            
     def simple_stand (self):
         
