@@ -153,7 +153,7 @@ class SimpleWalker(Node):
                 
         for i in range(6): 
 
-            sitting_point = - 1.6
+            sitting_point = - 1.9
 
             if -0.2 + sitting_point < self.currPos[i] < 0.2 + sitting_point:
                 self.cmd_pos[i] = sitting_point
