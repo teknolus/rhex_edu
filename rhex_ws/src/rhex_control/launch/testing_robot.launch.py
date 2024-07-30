@@ -32,9 +32,16 @@ def generate_launch_description():
         output="screen",
     )
 
+    optimizer_node = Node(
+        package="rhex_control",  
+        executable="optimizer_node.py",  
+        output="screen",
+    )
+
     return LaunchDescription([
         load_joint_state_controller,
         load_effort_controller,
+        optimizer_node,
         test_robot_node,
         simple_walker_node
     ])

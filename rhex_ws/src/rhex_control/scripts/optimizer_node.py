@@ -5,7 +5,6 @@ from miscellaneous import constrain_angle
 import numpy as np
 from rclpy.node import Node
 from rclpy.clock import Clock
-from rclpy.clock import Clock
 from control_msgs.action import FollowJointTrajectory
 import rclpy.parameter
 from std_msgs.msg import Float64MultiArray
@@ -13,19 +12,24 @@ from sensor_msgs.msg import JointState, Imu
 from nav_msgs.msg import Odometry
 import time 
 import math
+from scipy.io import savemat
 
-
-
-
-class SimpleWalker(Node):
+class OptimizerNode(Node):
     
     def __init__(self):
-        super().__init__('simple_walker')
+        super().__init__('optimizer_node')
         
-        
+        self.save_counter = 0
+        self.cmd_pos_save = []
+        self.cmd_vel_save = []
+        self.curr_pos_save = []
+        self.curr_vel_save = []
+        self.curr_Torq_save = []
+        self.save_enable = True
+
         # declared parameters for communicating with the terminal 
         self.declare_parameter('state', 10)
-        self.declare_parameter('simple_walker_enable', False)
+        self.declare_parameter('optimizer_node_enable', False)
         self.declare_parameter('cmd_tau', [0.0]*6)
         self.declare_parameter('cmd_vel', [0.0]*6)
         self.declare_parameter('cmd_pos', [0.0]*6)
@@ -37,8 +41,8 @@ class SimpleWalker(Node):
         
         # variables 
         self.newdata = False
-        self.simple_walker_enable = False
-        self.state = 1
+        self.optimizer_node_enable = False
+        self.state = 10
         self.cmd_tau = [0.0] * 6 
         self.cmd_pos = [0.0] * 6
         self.cmd_vel = [0.0] * 6
@@ -74,18 +78,11 @@ class SimpleWalker(Node):
         self.start_time = self.get_clock().now() 
         # self.simulation_speedup = 1.0 (no longer using real time clock so not needed.)
 
-        
-        # TIME SYNCHRONIZATIONS 
-        self.start_time = self.get_clock().now() 
-        # self.simulation_speedup = 1.0 (no longer using real time clock so not needed.)
-
         # run function publishes commands every 0.0025 second 
         self.create_timer(0.001, self.run)  
         #self.create_timer(1, self.print_joint_state)
         #self.create_timer(1.0, self.get_sim_time)
-        self.get_logger().info("**************SimpleWalker initialized****************")
-
-        
+        self.get_logger().info("**************OptimizerNode initialized****************")
 
     def get_sim_time(self):
         sim_time = self.get_clock().now().to_msg()
@@ -114,11 +111,6 @@ class SimpleWalker(Node):
             self.get_logger().info(f"current velocity:{self.currVel}")
             self.get_logger().info(f"current torque: {self.currTorq}")
         self.counter += 1
-        if self.counter % 5 == 0:
-            self.get_logger().info(f"current pose:{self.currPos}")
-            self.get_logger().info(f"current velocity:{self.currVel}")
-            self.get_logger().info(f"current torque: {self.currTorq}")
-        self.counter += 1
 
     def compute_controls(self):
         cmd_tau = np.array(self.cmd_tau)
@@ -138,40 +130,39 @@ class SimpleWalker(Node):
     
     def simple_sit (self): 
 
-            # given any initiali position further than 0 point by 0.1, it follows a linear interpolation to reach 0 in t_c time. 
+        # given any initiali position further than 0 point by 0.1, it follows a linear interpolation to reach 0 in t_c time. 
 
-            self.cmd_kp = [20.0] * 6
-            self.cmd_kd = [0.35] * 6 
-            t = [0.0] * 6 
-            t_c = 4.0   
+        self.cmd_kp = [20.0] * 6
+        self.cmd_kd = [0.35] * 6 
+        t = [0.0] * 6 
+        t_c = 4.0   
+        
+                
+                
+        for i in range(6): 
 
+            sitting_point = - 1.9
 
+            if -0.2 + sitting_point < self.currPos[i] < 0.2 + sitting_point:
+                self.cmd_pos[i] = sitting_point
+                self.cmd_vel[i] = 0.0
+                self.start_sitting [i] = True 
+            else: 
+                elapsed_duration = self.get_clock().now() - self.sit_start_time[i]
+                t [i] = (elapsed_duration.nanoseconds /1e9)
+            if t[i] < t_c:
+                if self.start_sitting [i]: 
+                    self.b [i] = self.currPos [i] 
+                    self.a [i] = (sitting_point -self.currPos [i])  / t_c 
+                    self.start_sitting [i] = False 
+                    
+                self.cmd_pos[i] = self.a[i] * t [i] + self.b[i] 
+                self.cmd_vel[i] = self.a[i]
 
-            for i in range(6): 
-
-                sitting_point = - 1.9
-
-                if -0.2 + sitting_point < self.currPos[i] < 0.2 + sitting_point:
-                    self.cmd_pos[i] = sitting_point
-                    self.cmd_vel[i] = 0.0
-                    self.start_sitting [i] = True 
-                else: 
-                    elapsed_duration = self.get_clock().now() - self.sit_start_time[i]
-                    t [i] = (elapsed_duration.nanoseconds /1e9)
-                if t[i] < t_c:
-                    if self.start_sitting [i]: 
-                        self.b [i] = self.currPos [i] 
-                        self.a [i] = (sitting_point -self.currPos [i])  / t_c 
-                        self.start_sitting [i] = False 
-
-                    self.cmd_pos[i] = self.a[i] * t [i] + self.b[i] 
-                    self.cmd_vel[i] = self.a[i]
-
-                else: 
-                    self.cmd_pos[i] = sitting_point
-                    self.cmd_vel[i] = 0.0
-                    self.start_sitting [i] = True 
-
+            else: 
+                self.cmd_pos[i] = sitting_point
+                self.cmd_vel[i] = 0.0
+                self.start_sitting [i] = True 
                            
     def simple_stand (self):
         
@@ -206,21 +197,14 @@ class SimpleWalker(Node):
                 self.cmd_pos[i] = 0.0
                 self.cmd_vel[i] = 0.0
                 self.start_standing [i] = True 
-    
-    def simple_walk (self):
+        
+    def simple_walk(self):
         self.cmd_kp = [20.0] * 6
         self.cmd_kd = [0.35] * 6
         current_time = self.get_clock().now()
-        elapsed_duration = ((current_time- self.start_time)) 
-        elapsed_time = elapsed_duration.nanoseconds /1e9
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6
-        current_time = self.get_clock().now()
-        elapsed_duration = ((current_time- self.start_time)) 
-        elapsed_time = elapsed_duration.nanoseconds /1e9
-         
-        t_c = 1.0
-        t_s = 0.5 
+        elapsed_duration = current_time - self.start_time
+        elapsed_time = elapsed_duration.nanoseconds / 1e9
+        
         t_c = 1.0
         t_s = 0.5 
         t_f = t_c - t_s
@@ -228,15 +212,10 @@ class SimpleWalker(Node):
         phi_s = 0.6
                 
         t = elapsed_time % t_c
-                
-        v_s = phi_s / t_s 
-        v_f = (2*math.pi - phi_s)/(t_c - t_s) 
         
         v_s = phi_s / t_s 
-        v_f = (2*math.pi - phi_s)/(t_c - t_s) 
+        v_f = (2 * math.pi - phi_s) / (t_c - t_s)
         
-                
-               
         # RIGHT TRIPOD
         for i in [1, 3, 5]: 
             if (0 <= t < t_s):
@@ -260,9 +239,28 @@ class SimpleWalker(Node):
             elif (0 <= t < t_d):
                 self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
                 self.cmd_vel[i] = v_s
-        
- 
-                    
+
+        self.cmd_pos =  mod_operation(self.cmd_pos.copy())
+     
+
+        if self.save_counter <= 2e3:
+            self.cmd_pos_save.append(self.cmd_pos.copy())
+            self.curr_pos_save.append(self.currPos.copy())
+
+            self.cmd_vel_save.append(self.cmd_vel.copy())
+            self.curr_vel_save.append(self.currVel.copy())
+
+            self.curr_Torq_save.append(self.currTorq.copy())
+
+            self.save_counter += 1
+            self.get_logger().info('saving')
+
+        elif self.save_counter == 2e3 + 1:
+            self.get_logger().info('saving completed')
+            self.save_counter += 1 
+        else:
+            self.save_counter += 1
+
     def simple_walk_backwards (self):
         self.cmd_kp = [20.0] * 6
         self.cmd_kd = [0.35] * 6
@@ -278,52 +276,6 @@ class SimpleWalker(Node):
                 
         t = elapsed_time % t_c
                 
-        v_s = phi_s / t_s 
-        v_f = (2*math.pi - phi_s)/(t_c - t_s) 
-        
-                
-                
-        # RIGHT TRIPOD
-        for i in [1, 3, 5]: 
-            if (0 <= t < t_s):
-                self.cmd_pos[i] = - v_s *t + phi_s/2
-                self.cmd_vel[i] = - v_s
-                            
-            elif (t_s <= t < t_c):
-                self.cmd_pos[i] = - v_f * (t - t_s) - phi_s/2
-                self.cmd_vel[i] = - v_f
-                            
-        # LEFT TRIPOD 
-        for i in [0, 2, 4]:
-            if (t_d <= t < t_d + t_f):
-                self.cmd_pos[i] = - v_f *(t - t_d) - phi_s/2
-                self.cmd_vel[i] = - v_f
-                            
-            elif (t_d + t_f <= t < t_c):
-                self.cmd_pos[i] = - v_s * (t- (t_d + t_f)) - (2* math.pi - phi_s/2)
-                self.cmd_vel[i] = - v_s    
-                        
-            elif (0 <= t < t_d):
-                self.cmd_pos[i] = - v_s * (t + t_s - t_d) -  (2* math.pi -phi_s/2)
-                self.cmd_vel[i] = - v_s
-    
-    def simple_run (self):  
-        self.cmd_kp = [24.0] * 6
-        self.cmd_kd = [0.35] * 6
-        current_time = self.get_clock().now()
-        elapsed_duration = ((current_time- self.start_time)) 
-        elapsed_time = elapsed_duration.nanoseconds /1e9
-        
-        t_c = 0.6
-        t_s = 0.3
-        t_f = t_c - t_s
-        t_d = 0.0 
-        phi_s = 0.6
-                
-        t = elapsed_time % t_c
-                
-        v_s = phi_s / t_s
-        v_f = (2*math.pi - phi_s)/(t_c - t_s)
         v_s = phi_s / t_s 
         v_f = (2*math.pi - phi_s)/(t_c - t_s) 
         
@@ -397,61 +349,7 @@ class SimpleWalker(Node):
                     self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
                     self.cmd_vel[i] = v_s
     
-    
     def simple_turn_right (self):
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6
-        current_time = self.get_clock().now()
-        elapsed_duration = ((current_time- self.start_time)) 
-        elapsed_time = elapsed_duration.nanoseconds /1e9
-                
-        t_c = 1.0
-        t_s = 0.5
-        t_f = t_c - t_s
-        t_d = 0.0
-        phi_s = 0.6
-                
-        t = elapsed_time % t_c
-                
-        v_s = phi_s / t_s
-        v_f = (2*math.pi - phi_s)/(t_c - t_s)
-                
-                
-        # RIGHT TRIPOD
-        for i in [1, 3, 5]: 
-            if (0 <= t < t_s):
-                self.cmd_pos[i] = - v_s *t + phi_s/2
-                self.cmd_vel[i] = - v_s
-                            
-            elif (t_s <= t < t_c):
-                self.cmd_pos[i] = - v_f * (t - t_s) - phi_s/2
-                self.cmd_vel[i] = - v_f
-                            
-        # LEFT TRIPOD 
-                
-        for i in [0, 2, 4]:
-            if (t_d <= t < t_d + t_f):
-                self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
-                self.cmd_vel[i] = v_f
-                            
-            elif (t_d + t_f <= t < t_c):
-                self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
-                self.cmd_vel[i] = v_s    
-                        
-            elif (0 <= t < t_d):
-                self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
-                self.cmd_vel[i] = v_s
-         
-    def simple_turn_left (self):
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6
-        current_time = self.get_clock().now()
-        elapsed_duration = ((current_time- self.start_time)) 
-        elapsed_time = elapsed_duration.nanoseconds /1e9
-                 
-                
-        t_c = 1.0
-        t_s = 0.5
         self.cmd_kp = [20.0] * 6
         self.cmd_kd = [0.35] * 6
         current_time = self.get_clock().now()
@@ -582,33 +480,6 @@ class SimpleWalker(Node):
         
         v_s_l = phi_s / t_s_l 
         v_f_l = (2*math.pi - phi_s)/(t_c - t_s_l) 
-        delta_phi_s = 0.0
-        delta_t_s = self.delta_t_s
-
-        if delta_t_s >0: 
-            delta_phi_s = 0.1
-        elif delta_t_s <0:
-            delta_phi_s = -0.1
-        else:
-            delta_phi_s = 0.0
-
-
-        t_s_l = t_s + delta_t_s
-        t_s_r = t_s - delta_t_s
-
-         
-        t_f_r = t_c - t_s_r
-        t_f_l = t_c - t_s_l
-
-        phi_s_0_l = 0 + delta_phi_s
-        phi_s_0_r = 0 - delta_phi_s
-        
-        
-        v_s_r = phi_s / t_s_r
-        v_f_r = (2*math.pi - phi_s)/(t_c - t_s_r) 
-        
-        v_s_l = phi_s / t_s_l 
-        v_f_l = (2*math.pi - phi_s)/(t_c - t_s_l) 
                 
                 
         # RIGHT TRIPOD
@@ -616,13 +487,7 @@ class SimpleWalker(Node):
             if (0 <= t < t_s_r):
                 self.cmd_pos[i] = v_s_r *t - phi_s/2 + phi_s_0_r
                 self.cmd_vel[i] = v_s_r
-            if (0 <= t < t_s_r):
-                self.cmd_pos[i] = v_s_r *t - phi_s/2 + phi_s_0_r
-                self.cmd_vel[i] = v_s_r
                             
-            elif (t_s_r <= t < t_c):
-                self.cmd_pos[i] = v_f_r * (t - t_s_r) + phi_s/2 + phi_s_0_r
-                self.cmd_vel[i] = v_f_r
             elif (t_s_r <= t < t_c):
                 self.cmd_pos[i] = v_f_r * (t - t_s_r) + phi_s/2 + phi_s_0_r
                 self.cmd_vel[i] = v_f_r
@@ -632,13 +497,7 @@ class SimpleWalker(Node):
             if (t_d <= t < t_d + t_f_l):
                 self.cmd_pos[i] = v_f_l *(t - t_d) + phi_s/2 + phi_s_0_l
                 self.cmd_vel[i] = v_f_l
-            if (t_d <= t < t_d + t_f_l):
-                self.cmd_pos[i] = v_f_l *(t - t_d) + phi_s/2 + phi_s_0_l
-                self.cmd_vel[i] = v_f_l
                             
-            elif (t_d + t_f_l <= t < t_c):
-                self.cmd_pos[i] = v_s_l * (t- (t_d + t_f_l)) + (2* math.pi - phi_s/2 + phi_s_0_l)
-                self.cmd_vel[i] = v_s_l    
             elif (t_d + t_f_l <= t < t_c):
                 self.cmd_pos[i] = v_s_l * (t- (t_d + t_f_l)) + (2* math.pi - phi_s/2 + phi_s_0_l)
                 self.cmd_vel[i] = v_s_l    
@@ -647,12 +506,9 @@ class SimpleWalker(Node):
                 self.cmd_pos[i] = v_s_l * (t + t_s_l - t_d) + (2* math.pi -phi_s /2 + phi_s_0_l)
                 self.cmd_vel[i] = v_s_l          
     
-                self.cmd_pos[i] = v_s_l * (t + t_s_l - t_d) + (2* math.pi -phi_s /2 + phi_s_0_l)
-                self.cmd_vel[i] = v_s_l          
-    
     def run(self):
         
-        if (self.simple_walker_enable):
+        if (self.optimizer_node_enable):
             
             # SIT
             if (self.state == 1):   
@@ -682,23 +538,15 @@ class SimpleWalker(Node):
             if (self.state == 4): 
                 self.simple_walk_backwards()  
 
-            
-            # WALK BACKWARDS 
-            if (self.state == 4): 
-                self.simple_walk_backwards()  
-
             # RUN 
-            if (self.state == 5):
             if (self.state == 5):
                 self.simple_run()
                 
             # TURN RIGHT
             if (self.state == 6): 
-            if (self.state == 6): 
                 self.simple_turn_right()
                 
             # TURN LEFT
-            if (self.state == 7):
             if (self.state == 7):
                 self.simple_turn_left()
 
@@ -706,37 +554,52 @@ class SimpleWalker(Node):
             if (self.state == 8):
                 self.simple_walk_and_turn()
 
+                        # WALK AND TURN 
             
-            # WALK AND TURN 
-            if (self.state == 8):
-                self.simple_walk_and_turn()
+            # Save walk data 
+            if self.state == 9:
+                if self.save_enable:
+                    self.curr_pos_save = np.array(self.curr_pos_save)
+                    self.curr_vel_save = np.array(self.curr_vel_save)
+                    self.curr_Torq_save = np.array(self.curr_Torq_save)
+                    self.cmd_pos_save = np.array(self.cmd_pos_save)
+                    self.cmd_vel_save = np.array(self.cmd_vel_save)
+                    
 
-            
-        self.simple_walker_enable = self.get_parameter('simple_walker_enable').get_parameter_value().bool_value
+                    data_dict = {
+                        'curr_pos': self.curr_pos_save,
+                        'curr_vel': self.curr_vel_save,
+                        'curr_Torq': self.curr_Torq_save,
+                        'cmd_pos': self.cmd_pos_save,
+                        'cmd_vel': self.cmd_vel_save
+                    }
+
+                
+                    savemat('/home/rhex/mnt/rhex_ws/src/rhex_control/scripts/plots_and_data/saved_data.mat', data_dict)
+                    self.save_enable = False
+
+
+        self.optimizer_node_enable = self.get_parameter('optimizer_node_enable').get_parameter_value().bool_value
         self.state = self.get_parameter('state').get_parameter_value().integer_value
-        self.delta_t_s = -self.get_parameter('delta_t_s').get_parameter_value().double_value 
         self.delta_t_s = -self.get_parameter('delta_t_s').get_parameter_value().double_value 
 
         if self.newdata:
             torque = Float64MultiArray()
             torque.data = self.compute_controls()
-            if (self.simple_walker_enable):
+            if (self.optimizer_node_enable):
                 self.publisher.publish(torque)
             self.newdata = False
 
-def create_plots(data_array, title):
-    for i in range(6):
-        plt.figure()
-        plt.plot(data_array[:, i])
-        plt.title(f'{title} for element {i+1}')
-        plt.xlabel('Sample')
-        plt.ylabel(f'{title} value')
-        plt.grid(True)
-        plt.show()
+def mod_operation(cmd_pos):
+    return [(math.fmod(value + math.pi, 2 * math.pi) - math.pi) for value in cmd_pos]
+
+# Example usage:
+cmd_pos = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]  # Example list with 6 elements
+modified_cmd_pos = mod_operation(cmd_pos)
 
 def main (args = None):
     rclpy.init(args = args)
-    node = SimpleWalker()
+    node = OptimizerNode()
     
     try:
         rclpy.spin(node)
@@ -746,7 +609,75 @@ def main (args = None):
         node.destroy_node()
         rclpy.shutdown()
           
-          
 if __name__ == '__main__':
     main()
     
+
+"""    def simple_walk (self):
+        self.cmd_kp = [20.0] * 6
+        self.cmd_kd = [0.35] * 6
+        current_time = self.get_clock().now()
+        elapsed_duration = ((current_time- self.start_time)) 
+        elapsed_time = elapsed_duration.nanoseconds /1e9
+         
+        t_c = 1.0
+        t_s = 0.5 
+        t_f = t_c - t_s
+        t_d = 0.01 
+        phi_s = 0.6
+                
+        t = elapsed_time % t_c
+                
+        v_s = phi_s / t_s 
+        v_f = (2*math.pi - phi_s)/(t_c - t_s) 
+        
+                
+               
+        # RIGHT TRIPOD
+        for i in [1, 3, 5]: 
+            if (0 <= t < t_s):
+                self.cmd_pos[i] = v_s *t - phi_s/2
+                self.cmd_vel[i] = v_s
+                            
+            elif (t_s <= t < t_c):
+                self.cmd_pos[i] = v_f * (t - t_s) + phi_s/2
+                self.cmd_vel[i] = v_f
+                            
+        # LEFT TRIPOD 
+        for i in [0, 2, 4]:
+            if (t_d <= t < t_d + t_f):
+                self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
+                self.cmd_vel[i] = v_f
+                            
+            elif (t_d + t_f <= t < t_c):
+                self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
+                self.cmd_vel[i] = v_s    
+                        
+            elif (0 <= t < t_d):
+                self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
+                self.cmd_vel[i] = v_s
+
+        if self.save_counter <= 2e3:
+
+            self.cmd_pos_save.append(self.cmd_pos)
+            self.curr_pos_save.append(self.currPos)
+
+            self.cmd_vel_save.append(self.cmd_vel)
+            self.curr_vel_save.append(self.currVel)
+
+            self.curr_Torq_save.append(self.currTorq)
+
+            self.save_counter = self.save_counter +1 
+
+
+            self.get_logger().info('saving')
+
+        elif self.save_counter == e3 +1: 
+            self.get_logger().info('saving completed')
+            self.save_counter = self.save_counter +1 
+        
+
+        else: 
+            self.save_counter = self.save_counter + 1
+
+"""

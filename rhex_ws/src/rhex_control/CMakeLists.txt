@@ -17,6 +17,12 @@ install(
         lib/${PROJECT_NAME}
 )
 
+install(
+  PROGRAMS
+    scripts/optimizer_node.py
+  DESTINATION
+    lib/${PROJECT_NAME}
+)
 
 
 install(
