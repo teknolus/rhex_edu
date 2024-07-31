@@ -4,7 +4,7 @@
         "dockerfile": "Dockerfile",
         "context": "../.."
     },
-
+    "runArgs": ["--network", "host"],
     "containerEnv": {
         "DISPLAY": "${env:DISPLAY}",
         "NVIDIA_VISIBLE_DEVICES": "all",
@@ -14,9 +14,15 @@
     "workspaceMount": "source=${localWorkspaceFolder},target=/home/rhex/mnt,type=bind,consistency=cached",
     "workspaceFolder": "/home/rhex/mnt/rhex_ws",
 
+    "privileged": true,
 
     "mounts": [
        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
+    ],
+
+    "appPort": [
+        5000,
+        5001
     ],
 
     "otherPortsAttributes": {
