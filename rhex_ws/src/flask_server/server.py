@@ -11,6 +11,7 @@ from flask import Flask, jsonify, request, Response
 import subprocess
 import os
 import socket
+import sys
 
 app = Flask(__name__)
 print("Server started")
@@ -19,10 +20,18 @@ print("Server started")
 cv_image = None
 cv_bridge = CvBridge()
 cv_image_lock = threading.Lock()  # Lock for thread-safe access to cv_image
+custom_control_dir = None
+custom_yolo_model_dir = None
+
+def get_base_dir():
+    current_file_path = os.path.abspath(__file__)
+    return os.path.abspath(os.path.join(current_file_path, '..', '..', '..'))
+
+BASE_DIR = get_base_dir()
 
 def run_control_client(command):
     try:
-        run_dir = '/home/rhex/mnt/rhex_ws/src/controls'
+        run_dir = custom_control_dir if custom_control_dir else os.path.join(BASE_DIR, 'src', 'controls')
         if not os.path.exists(run_dir):
             return jsonify({'error': f'Directory not found: {run_dir}'}), 500
         os.chdir(run_dir)
@@ -45,40 +54,6 @@ def home():
 @app.route('/run/<command>', methods=['POST'])
 def run_command(command):
     return run_control_client(command)
-
-@app.route('/compile', methods=['POST'])
-def compile_code():
-    try:
-        compile_dir = '/home/rhex/robot/rhex-api/examples'
-        if not os.path.exists(compile_dir):
-            return jsonify({'error': f'Directory not found: {compile_dir}'}), 500
-        os.chdir(compile_dir)
-        dir_contents = os.listdir('.')
-        print(f"Current directory contents: {dir_contents}")
-        compile_command = [
-            'g++', '-o', 'basic_walk', 'basic_walk.cc',
-            '-I../include', '-I/usr/include/gstreamer-1.0', '-I/usr/include/glib-2.0',
-            '-I/usr/lib/x86_64-linux-gnu/glib-2.0/include', '-L../lib',
-            '-L/usr/lib/x86_64-linux-gnu', '-lrhexapi', '-lgstreamer-1.0',
-            '-lgobject-2.0', '-lglib-2.0', '-lssl', '-lcrypto', '-lgstvideo-1.0',
-            '-lgstrtp-1.0', '-largon2'
-        ]
-        compile_result = subprocess.run(compile_command, capture_output=True, text=True)
-        if compile_result.returncode != 0:
-            return jsonify({
-                'output': compile_result.stdout,
-                'errors': compile_result.stderr,
-                'returncode': compile_result.returncode
-            }), 500
-        run_command = ['./basic_walk']
-        run_result = subprocess.run(run_command, capture_output=True, text=True)
-        return jsonify({
-            'run_output': run_result.stdout,
-            'run_errors': run_result.stderr,
-            'returncode': run_result.returncode
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/image', methods=['GET'])
 def get_image():
@@ -116,7 +91,8 @@ class ImageProcessor(Node):
         )
 
         self.cv_bridge = CvBridge()
-        self.detector = YOLO('/home/rhex/mnt/rhex_ws/src/rhex_yolo_detector/rhex_yolo_detector/best.pt')
+        model_path = custom_yolo_model_dir if custom_yolo_model_dir else os.path.join(BASE_DIR, 'src', 'rhex_yolo_detector', 'rhex_yolo_detector', 'best.pt')
+        self.detector = YOLO(model_path)
         self.current_position = None
 
     def image_callback(self, msg):
@@ -155,6 +131,10 @@ def ros2_setup():
     rclpy.shutdown()
 
 if __name__ == '__main__':
+    if '-cp' in sys.argv:
+        custom_control_dir = input("Enter the path of the controls directory: ")
+        custom_yolo_model_dir = input("Enter the path of the YOLO model directory: ")
+
     ros2_thread = threading.Thread(target=ros2_setup)
     ros2_thread.start()
     app.run(host='0.0.0.0', port=5001)
