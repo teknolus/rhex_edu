@@ -62,5 +62,5 @@ Through this iterative process, we overcame multiple technical challenges and ac
 
 ## Downloads
 
-- [Download APK](https://drive.google.com/file/d/18Q4AW9765Dcuf0IVXPzCGXbthTrBwMJB/view?usp=drive_link)
-- [Download Android Studio Project (ZIP)](https://drive.google.com/file/d/1Cfe8csetjEEJDzldwcYbwsjx3gJabBKo/view?usp=drive_link)
+- [Download APK](https://drive.google.com/file/d/1UDs2m8riKrxz9fJDtkoOsUQVV0DAIuva/view?usp=drive_link)
+- [Download Android Studio Project (ZIP)](https://drive.google.com/file/d/1qI6UYGzsGY2vcx9QC1JV_rZVzE571K9q/view?usp=drive_link)
