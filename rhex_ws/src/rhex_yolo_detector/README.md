@@ -33,10 +33,9 @@ This package utilizes the YOLOv8 object detection model to detect the presence o
     ros2 launch rhex_gazebo start_sim.launch.py
 5. **Run the YOLO Detection Node**: In a new terminal, source the workspace and run the YOLO detection node within the rhex_yolo_detector package.
     ```bash
-    source ~/mnt/rhex_ws/install/setup.bash
     ros2 run rhex_yolo_detector yolo_subscriber
 ## Contributors
 - **Leen Said**
-- **Hamza Awad**
+- **Hamzeh Awad**
 
 

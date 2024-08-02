@@ -6,7 +6,7 @@ This project integrates robotics and software front-end engineering to enhance t
 
 ## Team Members
 - **Leen Said**
- - **Hamza Awad**
+ - **Hamzeh Awad**
 
 ## Project Overview
 This project aims to develop an Android GUI for controlling a RHex robot simulation by enabling communication between an Android device and a host PC running a containerized RHex simulation. A Flask server is set up inside the container, with modifications to the Dockerfile to include necessary precompiled binaries, and port 5001 is opened for communication. The host machine's firewall is configured to allow traffic through this port. By connecting the host PC, container, and Android device to a common network, and running the server and Gazebo workspace within the container, users can control the simulation by entering the host PC's IP address on the Android app.
@@ -38,11 +38,15 @@ This project aims to develop an Android GUI for controlling a RHex robot simulat
 - The `handleClient` function processes incoming commands such as CONNECT, STAND, SIT, DISCONNECT, WALK, and movement directions (FORWARD, BACKWARD, STOP, RIGHT, LEFT) by interacting with the RHexAPI.
 -  Commands are sent to the robot, and the robot's responses are returned to the client.
 
+### Note:
+This project leverages precompiled C++ object files (control_server and control_client). The original C++ source files are included to accommodate any necessary modifications. 
 
-### Note: This project uses precompiled c++ object files (`control_server` and `control_client`), the original c++ files are provided in case any modifications are necessary. They c++ files can be compiled using the following command in `src/controls/`:
+To compile these C++ files for the AMD architecture, navigate to the src/controls/ directory and execute the following command:
+
   ```bash
   g++ -o object_file_name file_name.cc -I../../../../robot/rhex-api/include -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -L../../../../robot/rhex-api/lib -L/usr/lib/x86_64-linux-gnu -lrhexapi -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0 -lssl -lcrypto -lgstvideo-1.0 -lgstrtp-1.0 -largon2
   ```
+
 
 ## How to Use the App/Code
 ### Setup Instructions
@@ -55,19 +59,22 @@ Clone the repository and follow the instructions to build and open the container
   ```sh
   sudo ufw enable
   sudo ufw allow 5001/tcp
-  sudo ufw reload
   ```
 ***Inside The Container***
 - Connect devices to a common network.
 - Start the Flask server(communicates with the user's phone):
   ```sh
-  python3 src/flask_server/server.py
+  python3 src/gui_controls/server.py 
+  ```
+  #### Note: This script is designed to execute automatically within the rhex_edu container environment on any host machine. For scenarios where you prefer to run the script outside this environment, you can utilize the -cp and the terminal will prompt you to input your custom paths.
+   ```sh
+    python3 src/gui_controls/server.py -cp
   ```
 - Run the client server(connects the flask server with the robot so that it can receive commands):
   ```sh
-  ./src/controls/control_server
+  ./src/gui_controls/control_server
   ```
-- Run the simulation:
+- Run the simulation and controller:
   ```sh
   ros2 launch rhex_gazebo start_sim.launch.py 
   ros2 launch rhex_control start_controller_server.launch.py
@@ -75,6 +82,28 @@ Clone the repository and follow the instructions to build and open the container
   ```
 
 
+***Deploying Code on RHex Robot***
+- Compile control_server.cc and control_client.cc for the ARM64 architecture using the following command:
+  ```bash
+  g++ -o object_file_name file_name.cc -I../../../../robot/rhex-api/include -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/aarch64-linux-gnu/glib-2.0/include -L../../../../robot/rhex-api/lib -L/usr/lib/aarch64-linux-gnu -lrhexapi -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0 -lssl -lcrypto -lgstvideo-1.0 -lgstrtp-1.0 -largon2
+  ```
+
+- Ensure you update the ROS topic names in server.py to match the actual topic names used by the RHex robot. Replace the following lines with the appropriate topic names:
+  ```
+    super().__init__('image_processor')
+      self.image_subscription = self.create_subscription(
+          Image,
+          '/depth_camera/image_raw',  # Update this topic name
+          self.image_callback,
+          10
+    )
+  ```
+- Note: These commands are unnecessary when operating the actual RHex robot:
+  ```
+  ros2 launch rhex_gazebo start_sim.launch.py 
+  ros2 launch rhex_control start_controller_server.launch.py
+  start_rhex_supervisor.sh
+  ```
 
 
 ***On Android***

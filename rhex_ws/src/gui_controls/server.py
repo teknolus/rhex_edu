@@ -132,8 +132,8 @@ def ros2_setup():
 
 if __name__ == '__main__':
     if '-cp' in sys.argv:
-        custom_control_dir = input("Enter the path of the controls directory: ")
-        custom_yolo_model_dir = input("Enter the path of the YOLO model directory: ")
+        custom_control_dir = input("Enter the absolute path of the controls directory: ")
+        custom_yolo_model_dir = input("Enter the absolute path of the YOLO model directory: ")
 
     ros2_thread = threading.Thread(target=ros2_setup)
     ros2_thread.start()
