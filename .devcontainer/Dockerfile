@@ -60,3 +60,4 @@ RUN echo "source /usr/share/gazebo/setup.sh" >> ~/.bashrc
 # Clean up APT cache to reduce the image size
 RUN sudo apt-get clean && \
     sudo rm -rf /var/lib/apt/lists/*
+
