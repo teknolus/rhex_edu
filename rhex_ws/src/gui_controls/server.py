@@ -29,31 +29,9 @@ def get_base_dir():
 
 BASE_DIR = get_base_dir()
 
-def run_control_client(command):
-    try:
-        run_dir = custom_control_dir if custom_control_dir else os.path.join(BASE_DIR, 'src', 'controls')
-        if not os.path.exists(run_dir):
-            return jsonify({'error': f'Directory not found: {run_dir}'}), 500
-        os.chdir(run_dir)
-        dir_contents = os.listdir('.')
-        print(f"Current directory contents: {dir_contents}")
-        run_command = ['./control_client', command]
-        run_result = subprocess.run(run_command, capture_output=True, text=True)
-        return jsonify({
-            'run_output': run_result.stdout,
-            'run_errors': run_result.stderr,
-            'returncode': run_result.returncode
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/')
 def home():
     return 'Welcome to the Flask Server!\n'
-
-@app.route('/run/<command>', methods=['POST'])
-def run_command(command):
-    return run_control_client(command)
 
 @app.route('/image', methods=['GET'])
 def get_image():

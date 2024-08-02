@@ -20,23 +20,33 @@ This project aims to develop an Android GUI for controlling a RHex robot simulat
 ## Flask Server (server.py)
 - The server provides endpoints to run control commands and compile code. This allows users to interact with the robot control system via HTTP requests. The server starts and listens on port 5001.
 
-- Provides an endpoint (/run/\<command>) to execute control commands via HTTP POST requests.
-
-  
-
-## Control Client (control_client.cc)
-- The script allows for remote control of a robot or system by sending commands to a control server. The commands specified via the terminal or through an Android GUI connected to a Flask server.
-
-- The run_control_client function in server.py changes the directory to the control_client script's location and executes the specified command using the subprocess module. For example, if the command were "connect" the function would execute the following in the terminal:
-  ```bash
-    ./control_client connect
-  ```
-
+- Provides an endpoint (/control/\<command>) to execute control commands via HTTP POST requests.
 
 ## Control Server (control_server.cc)
 - This script implements a server that handles robot control commands received over a TCP connection using the RHexAPI. 
 - The `handleClient` function processes incoming commands such as CONNECT, STAND, SIT, DISCONNECT, WALK, and movement directions (FORWARD, BACKWARD, STOP, RIGHT, LEFT) by interacting with the RHexAPI.
 -  Commands are sent to the robot, and the robot's responses are returned to the client.
+
+ 
+
+## Control Client (control_client.cc)
+- The script allows for control of a robot or system by sending commands to a control server. The command is specified via the terminal as an arguement.
+
+- The purpose of this script is for testing from within the docker container. Here is an example use:
+  ```bash
+    ./control_client connect
+    ./control_client calibrate
+    ./control_client walk
+    ./control_client forward
+    ./control_client stop
+    ./control_client disconnect
+  ```
+### Note:
+To `control_client` is for testing the robot functionalities from within the container, but it does not act as an external device sending an HTTP request to the flask server. To simulate an external device sending an HTTP request, you can use curl from a terminal outside the container:
+```bash 
+  curl -X POST http://<machine-ip-address>:5001/control/<command>
+  ```
+  
 
 ### Note:
 This project leverages precompiled C++ object files (control_server and control_client). The original C++ source files are included to accommodate any necessary modifications. 
