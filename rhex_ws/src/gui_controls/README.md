@@ -83,6 +83,7 @@ Clone the repository and follow the instructions to build and open the container
 
 
 ***Deploying Code on RHex Robot***
+- Change the IP Address in client_server.cc to match that of the RHex Robot.
 - Compile control_server.cc and control_client.cc for the ARM64 architecture using the following command:
   ```bash
   g++ -o object_file_name file_name.cc -I../../../../robot/rhex-api/include -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/aarch64-linux-gnu/glib-2.0/include -L../../../../robot/rhex-api/lib -L/usr/lib/aarch64-linux-gnu -lrhexapi -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0 -lssl -lcrypto -lgstvideo-1.0 -lgstrtp-1.0 -largon2
@@ -104,6 +105,7 @@ Clone the repository and follow the instructions to build and open the container
   ros2 launch rhex_control start_controller_server.launch.py
   start_rhex_supervisor.sh
   ```
+
 
 
 ***On Android***
