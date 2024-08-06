@@ -35,7 +35,13 @@ class ImageProcessor(Node):
     def image_callback(self, msg):
         global cv_image
         try:
-            cv_image_local = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
+            # Convert the ROS image message to an OpenCV image (BGR format)
+            cv_image_local = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+
+            # Convert BGR to RGB
+            cv_image_local = cv2.cvtColor(cv_image_local, cv2.COLOR_BGR2RGB)
+
+            # Run YOLO detection
             results = self.detector(cv_image_local)
             
             objects_detected = False
@@ -59,6 +65,8 @@ class ImageProcessor(Node):
 
             cv_image = cv_image_local
 
+            # Convert RGB back to BGR for display
+            cv_image_local = cv2.cvtColor(cv_image_local, cv2.COLOR_RGB2BGR)
             cv2.imshow('Depth Image', cv_image_local)
             cv2.waitKey(1)
 

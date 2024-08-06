@@ -16,47 +16,21 @@ This project aims to develop an Android GUI for controlling a RHex robot simulat
 - **Libraries**: Flask, GStreamer, GLib, OpenSSL, Argon2
 - **Tools**: Docker, Android Studio, Gazebo
 
+## Overview
 
-## Flask Server (server.py)
-- The server provides endpoints to run control commands and compile code. This allows users to interact with the robot control system via HTTP requests. The server starts and listens on port 5001.
+```server.py```
 
-- Provides an endpoint (/control/\<command>) to execute control commands via HTTP POST requests.
+The server.py script sets up a Flask server to interface with a RHex robot. It handles HTTP requests to control the robot, such as connecting, standing, sitting, walking, and calibrating. The script integrates ROS2 for image processing using the YOLO model for object detection. Images are processed and served via the Flask server, allowing for real-time monitoring and control of the robot.
 
-## Control Server (control_server.cc)
-- This script implements a server that handles robot control commands received over a TCP connection using the RHexAPI. 
-- The `handleClient` function processes incoming commands such as CONNECT, STAND, SIT, DISCONNECT, WALK, and movement directions (FORWARD, BACKWARD, STOP, RIGHT, LEFT) by interacting with the RHexAPI.
--  Commands are sent to the robot, and the robot's responses are returned to the client.
+```pyrhexapi.cpp```
 
- 
+The pyRiminate the need for client_controller and client_server C++ files.
 
-## Control Client (control_client.cc)
-- The script allows for control of a robot or system by sending commands to a control server. The command is specified via the terminal as an arguement.
+hexapi.cpp script uses pybind11 to create Python bindings for the RHexAPI, enabling Python programs to interact with the RHex robot's functionalities. It exposes various classes and functions such as IMU data, GPS data, movement commands, and calibration processes, allowing Python developers to control the robot, retrieve sensor data, and manage its operational modes directly from Python code.
 
-- The purpose of this script is for testing from within the docker container. Here is an example use:
-  ```bash
-    ./control_client connect
-    ./control_client calibrate
-    ./control_client walk
-    ./control_client forward
-    ./control_client stop
-    ./control_client disconnect
-  ```
-### Note:
-To `control_client` is for testing the robot functionalities from within the container, but it does not act as an external device sending an HTTP request to the flask server. To simulate an external device sending an HTTP request, you can use curl from a terminal outside the container:
-```bash 
-  curl -X POST http://<machine-ip-address>:5001/control/<command>
-  ```
-  
+```setup.py```
 
-### Note:
-This project leverages precompiled C++ object files (control_server and control_client). The original C++ source files are included to accommodate any necessary modifications. 
-
-To compile these C++ files for the AMD architecture, navigate to the src/controls/ directory and execute the following command:
-
-  ```bash
-  g++ -o object_file_name file_name.cc -I../../../../robot/rhex-api/include -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -L../../../../robot/rhex-api/lib -L/usr/lib/x86_64-linux-gnu -lrhexapi -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0 -lssl -lcrypto -lgstvideo-1.0 -lgstrtp-1.0 -largon2
-  ```
-
+The setup.py script configures the build process for the pyrhexapi module using setuptools and CMake. It defines CMakeExtension and CMakeBuild classes to manage building the C++ extension. The script sets up CMake arguments, handles different build configurations, and ensures compatibility across various platforms. This setup allows for seamless building and installation of the module in a Python environment.
 
 ## How to Use the App/Code
 ### Setup Instructions
@@ -71,33 +45,72 @@ Clone the repository and follow the instructions to build and open the container
   sudo ufw allow 5001/tcp
   ```
 ***Inside The Container***
+- Set the RHEX_API_DIR environment variable to the path of gui_controls. The default command is:
+  ```bash
+  export RHEX_API_DIR=/home/rhex/mnt/rhex_ws/src/gui_controls
+  ```
+- Navigate to the gui_controls/build folder and run the following commands to build the project:
+  ```bash
+  cd /home/rhex/mnt/rhex_ws/src/gui_controls/build
+  cmake ..
+  make
+  ```
+These commands will configure and compile the gui_controls project. A shared object file (".so") should appear in the `gui_controls/src` directory.
+Ensure that the path /home/rhex/mnt/rhex_ws/src/gui_controls matches the actual location of the gui_controls directory on your system. If the directory is located elsewhere, adjust the path accordingly.
+
 - Connect devices to a common network.
-- Start the Flask server(communicates with the user's phone):
+- Go back to `rhex_ws` and start the Flask server:
   ```sh
-  python3 src/gui_controls/server.py 
+  cd ../../..
+  python3 src/gui_controls/src/server.py 
   ```
-  #### Note: This script is designed to execute automatically within the rhex_edu container environment on any host machine. For scenarios where you prefer to run the script outside this environment, you can utilize the -cp and the terminal will prompt you to input your custom paths.
+  #### Note: This script is designed to execute automatically within the rhex_edu container environment on any host machine. For scenarios where you prefer to run the script outside this environment, you can utilize the -cp and the terminal will prompt you to input your custom path.
    ```sh
-    python3 src/gui_controls/server.py -cp
+    python3 src/gui_controls/src/server.py -cp
   ```
-- Run the client server(connects the flask server with the robot so that it can receive commands):
-  ```sh
-  ./src/gui_controls/control_server
-  ```
-- Run the simulation and controller:
+- In another terminal, run the simulation and controller:
   ```sh
   ros2 launch rhex_gazebo start_sim.launch.py 
   ros2 launch rhex_control start_controller_server.launch.py
   start_rhex_supervisor.sh
   ```
 
+  ***On Android***
+1. Open the app on your Android device.
+2. Enter the host machine's IP address
+3. Voila!
 
-***Deploying Code on RHex Robot***
-- Change the IP Address in client_server.cc to match that of the RHex Robot.
-- Compile control_server.cc and control_client.cc for the ARM64 architecture using the following command:
-  ```bash
-  g++ -o object_file_name file_name.cc -I../../../../robot/rhex-api/include -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/aarch64-linux-gnu/glib-2.0/include -L../../../../robot/rhex-api/lib -L/usr/lib/aarch64-linux-gnu -lrhexapi -lgstreamer-1.0 -lgobject-2.0 -lglib-2.0 -lssl -lcrypto -lgstvideo-1.0 -lgstrtp-1.0 -largon2
+### Simulating Android App Button Press:
+To simulate an Android app button press, run the following command in a terminal outside the container:
+
+```bash 
+  curl -X POST http://<machine-ip-address>:5001/control/<command>
   ```
+Replace <machine-ip-address> with the IP address of the machine running the server and <command> with one of the available commands listed below.
+
+Available commands:
+
+- connect
+- sit
+- stand
+- calibrate
+- walk
+- forward
+- backward
+- right
+- left
+- stop
+- disconnect<br>
+For testing from within the Docker container, you can use either the previous command with the appropriate IP address or the following command:
+```bash 
+  curl -X POST http://127.0.0.1:5001/control/<command>
+  ```
+
+
+
+
+### Deploying Code on RHex Robot
+- Change the IP Address in client_server.cc to match that of the RHex Robot.
 
 - Ensure you update the ROS topic names in server.py to match the actual topic names used by the RHex robot. Replace the following lines with the appropriate topic names:
   ```
@@ -115,13 +128,6 @@ Clone the repository and follow the instructions to build and open the container
   ros2 launch rhex_control start_controller_server.launch.py
   start_rhex_supervisor.sh
   ```
-
-
-
-***On Android***
-1. Open the app on your Android device.
-2. Enter the host machine's IP address
-3. Voila!
 
 
 

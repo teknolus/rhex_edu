@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -flto -shared  -o ../src/pyrhexapi.cpython-310-x86_64-linux-gnu.so CMakeFiles/pyrhexapi.dir/src/pyrhexapi.cpp.o  ../lib/librhexapi.a -lssl -lcrypto -largon2 -latomic -lpthread -lgstreamer-1.0 -lgstrtp-1.0 -lgstvideo-1.0 -lgobject-2.0 -lglib-2.0 
