@@ -20,14 +20,15 @@ def generate_launch_description():
     )
 
     
-    simple_walker_node = Node(
+    walker_node = Node(
         package="rhex_control",  
-        executable="simple_walker.py",  
+        executable="walker.py",  
         output="screen",
     )
+
 
     return LaunchDescription([
         load_joint_state_controller,
         load_effort_controller,
-        simple_walker_node
+        walker_node, 
     ])

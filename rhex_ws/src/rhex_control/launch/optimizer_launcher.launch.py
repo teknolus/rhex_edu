@@ -19,29 +19,12 @@ def generate_launch_description():
         output='screen'
     )
 
-    
-    simple_walker_node = Node(
-        package="rhex_control",  
-        executable="simple_walker.py",  
-        output="screen",
-    )
-
-    test_robot_node = Node(
-        package="rhex_control",  
-        executable="test_robot.py",  
-        output="screen",
-    )
-
     optimizer_node = Node(
-        package="rhex_control",  
-        executable="optimizer_node.py",  
+        package="rhex_control", 
+        executable= "optimizer_node.py",
         output="screen",
     )
 
     return LaunchDescription([
-        load_joint_state_controller,
-        load_effort_controller,
         optimizer_node,
-        test_robot_node,
-        simple_walker_node
     ])

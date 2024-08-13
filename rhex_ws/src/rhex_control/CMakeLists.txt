@@ -17,6 +17,15 @@ install(
         lib/${PROJECT_NAME}
 )
 
+
+install(
+  PROGRAMS
+    scripts/walker.py
+  DESTINATION
+    lib/${PROJECT_NAME}
+)
+
+
 install(
   PROGRAMS
     scripts/optimizer_node.py
@@ -24,21 +33,6 @@ install(
     lib/${PROJECT_NAME}
 )
 
-
-install(
-  PROGRAMS
-    scripts/simple_walker.py
-  DESTINATION
-    lib/${PROJECT_NAME}
-)
-
-
-install(
-  PROGRAMS
-    scripts/test_robot.py
-  DESTINATION
-    lib/${PROJECT_NAME}
-)
 
 install(
     DIRECTORY

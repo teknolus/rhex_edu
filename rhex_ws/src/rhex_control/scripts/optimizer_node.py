@@ -5,601 +5,606 @@ from miscellaneous import constrain_angle
 import numpy as np
 from rclpy.node import Node
 from rclpy.clock import Clock
-from control_msgs.action import FollowJointTrajectory
 import rclpy.parameter
 from std_msgs.msg import Float64MultiArray
-from sensor_msgs.msg import JointState, Imu
+from sensor_msgs.msg import JointState
 from nav_msgs.msg import Odometry
+import math 
 import time 
-import math
-from scipy.io import savemat
+from pathlib import Path
+import matplotlib.pyplot as plt
+import numpy as np
+from gym import spaces
+from pid_controller import PID
+import gym 
+from test_model import evaluate
+from utils import fig2data
+import io
+import os
+import cv2
+from scipy.integrate import solve_ivp
+import argparse
+import stable_baselines3
+import torch
+from stable_baselines3 import PPO, SAC
+from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.vec_env import VecCheckNan, VecNormalize
+from callbacks import EvalCallback, SaveBestModelCallback
+import threading
 
+
+uinit = [10.0] * 6
+umin = -20.0
+umax = 20.0
+yinit = [0.0] * 6 
+delt = 0.001 
+slew_rate = 5.0 
+disturbance = False
+deterministic = True
+disturbance_value = 0.0
+
+min_gains = np.array([[0.0]*6, [0.0]*6, [0.0]*6])
+max_gains = np.array([[40.0]*6, [2.0]*6, [2.0]*6])
+
+# PID Controller Optimization model's structure follows the alogorithm and template code provided in
+#"Reinforcement learning based adaptive PID controller design for control of linear/nonlinear unstable processes" paper 
+
+# CLASS: OptimizerNode
+# sets up the dynamics of the input/output to be given to the RL model
+#ROS RELATED
+# 1. communicates with gazebo by recieving join states topic (current_topic_positions) 
+# 2. communicates with the walker node by subscribing to its command topic (command positions) 
+# 3. publishes torque commands to the walker node which are then send to gazebo based on walker node's counter frequency (real time)
+#OPTIMIZATION RELATED
+# 1. state: command_position, current_position, previous_position 
+# 2: input: Kp, Kd, Ki 
+# 3. output of the model is the command torque which is published to walker node at each step.
+# 4.communicates with gym environment via its its state and output
+  
 class OptimizerNode(Node):
     
-    def __init__(self):
+    def __init__(
+        self,
+        uinit=uinit,
+        yinit=yinit,
+        delt=delt,
+        ttfinal=None,
+        disturbance=disturbance,
+        deterministic=deterministic,
+        disturbance_value=disturbance_value,
+    ):
         super().__init__('optimizer_node')
         
-        self.save_counter = 0
-        self.cmd_pos_save = []
-        self.cmd_vel_save = []
-        self.curr_pos_save = []
-        self.curr_vel_save = []
-        self.curr_Torq_save = []
-        self.save_enable = True
-
-        # declared parameters for communicating with the terminal 
-        self.declare_parameter('state', 10)
-        self.declare_parameter('optimizer_node_enable', False)
-        self.declare_parameter('cmd_tau', [0.0]*6)
-        self.declare_parameter('cmd_vel', [0.0]*6)
-        self.declare_parameter('cmd_pos', [0.0]*6)
-        self.declare_parameter('cmd_kp', [0.0]*6)
-        self.declare_parameter('cmd_kd', [0.0]*6)
-        self.declare_parameter('delta_t_s', 0.0)
-                
         
-        
+        # ROS2 RELATED ************************************************
         # variables 
-        self.newdata = False
-        self.optimizer_node_enable = False
-        self.state = 10
-        self.cmd_tau = [0.0] * 6 
-        self.cmd_pos = [0.0] * 6
-        self.cmd_vel = [0.0] * 6
-        self.cmd_kp = [0.0] * 6
-        self.cmd_kd = [0.0] * 6
-        self.currPos = np.zeros(6)
-        self.currVel = np.zeros(6)
-        self.currTorq = np.zeros(6)
-        self.currPose = np.zeros(4)
-        self.globalPos = np.zeros(3)
-        self.counter = 0 
-        self.delta_t_s = 0.0
-
-        #sitting params 
-        self.start_sitting = [True] * 6 
-        self.sit_start_time = [0.0] * 6
-
-        #standing params 
-        self.start_standing = [True] * 6
-        self.stand_start_time = [0.0] * 6
-
-        self.a = [0.0] * 6
-        self.b= [0.0] * 6
+        self.current_topic_position = np.zeros(6)
+        self.command_position = np.zeros(6)
+        self.current_position = np.zeros(6)
+        self.previous_position = np.zeros(6)
+        self.command_torque = np.zeros(6)
+        # Topics
+        self.command_position_subscriber_ = self.create_subscription(Float64MultiArray,'/command_position',self.command_position_callback,10)
+        self.subJoints_subscriber_ = self.create_subscription(JointState, '/joint_states', self.current_position_callback, 10)
+        self.command_torque_publisher = self.create_publisher(Float64MultiArray,'/command_torque',10)
+        self.get_logger().info("**************optimizer_node initialized****************")  
         
-        # TOPICS
-        self.publisher = self.create_publisher(Float64MultiArray, '/effort_controller/commands', 10)
-        self.Odometry_Subscriber_ = self.create_subscription(Odometry, '/odom/robot_pos', self.callback_position, 10)
-        self.subJoints_Subscriber_ = self.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
-        self.subIMU_Subscriber_ = self.create_subscription(Imu, '/imu/data', self.imu_callback, 10)
+        # Simulation settings **********************************************************
+        self.delt = delt  
+        self.ttfinal = ttfinal  
+        self.slew_rate = slew_rate
+        self.umin = umin
+        self.umax = umax
+        self.input_low = self.umin
+        self.input_high = self.umax
+        self.disturbance_value = disturbance_value
+        self.uinit = np.array(uinit)
+        self.yinit = self.previous_position.copy()
+        self.disturbance = disturbance
+        self.deterministic = deterministic
+        self.xinit = np.array([self.command_position.copy(), self.current_position.copy(), self.previous_position.copy()])
+        self.reset()    
 
-        
-        # TIME SYNCHRONIZATIONS 
-        self.start_time = self.get_clock().now() 
-        # self.simulation_speedup = 1.0 (no longer using real time clock so not needed.)
 
-        # run function publishes commands every 0.0025 second 
-        self.create_timer(0.001, self.run)  
-        #self.create_timer(1, self.print_joint_state)
-        #self.create_timer(1.0, self.get_sim_time)
-        self.get_logger().info("**************OptimizerNode initialized****************")
+    @property
+    def state_names(self):
+        names = ["Setpoint(k)", "Output(k)", "Output(k-1)"]
+        assert len(names) == self.n_states
+        return names
 
-    def get_sim_time(self):
-        sim_time = self.get_clock().now().to_msg()
-        self.get_logger().info(f"Simulation time: {sim_time.sec}.{sim_time.nanosec}")
-        self.get_logger().info(f"current pose:{self.currPos}")
-
-    def callback_position(self, msg):
-        self.globalPos = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z])
-
-    def joint_state_callback(self, msg):
-        self.currPos = constrain_angle(np.array([*msg.position]))
-        self.currVel = np.array([*msg.velocity])
-        self.currTorq = np.array([*msg.effort])
-        self.currPos = self.currPos[[4, 2, 0, 5, 3, 1]]     
-        self.currVel = self.currVel[[4, 2, 0, 5, 3, 1]] 
-        self.currTorq = self.currTorq[[4, 2, 0, 5, 3, 1]]
-        self.newdata = True  
-
-    def imu_callback(self, msg):
-        self.currPose = np.array([msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w])
-        self.newdata = True 
-        
-    def print_joint_state(self):
-        if self.counter % 5 == 0:
-            self.get_logger().info(f"current pose:{self.currPos}")
-            self.get_logger().info(f"current velocity:{self.currVel}")
-            self.get_logger().info(f"current torque: {self.currTorq}")
-        self.counter += 1
-
-    def compute_controls(self):
-        cmd_tau = np.array(self.cmd_tau)
-        cmd_vel = np.array(self.cmd_vel)
-        cmd_pos = np.array(self.cmd_pos)
-        cmd_kp = np.array(self.cmd_kp)
-        cmd_kd = np.array(self.cmd_kd)
-        curr_Pos = np.array(self.currPos)
-        curr_Vel = np.array(self.currVel)
-        curr_Torq = np.array(self.currTorq)
-        posErr = (cmd_pos) - curr_Pos
-        posErr = np.mod(posErr+np.pi, 2*np.pi) - np.pi
-        velErr = (cmd_vel) - curr_Vel
-        commTorque = np.multiply(cmd_kp, posErr) + np.multiply(cmd_kd, velErr) + cmd_tau
-        np.clip(commTorque, -20, 20, out=commTorque)
-        return list(commTorque[[2, 5, 1, 4, 0, 3]])
+    @property
+    def input_names(self):
+        return ["Kp(k)", "Ki(k)", "Kd(k)"]
     
-    def simple_sit (self): 
+    @property
+    def n_states(self):
+        return len(self.get_state())
 
-        # given any initiali position further than 0 point by 0.1, it follows a linear interpolation to reach 0 in t_c time. 
+    @property
+    def n_actions(self):
+        return self.input_low.shape[0]
 
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6 
-        t = [0.0] * 6 
-        t_c = 4.0   
+    def reset(self):
         
-                
-                
-        for i in range(6): 
-
-            sitting_point = - 1.9
-
-            if -0.2 + sitting_point < self.currPos[i] < 0.2 + sitting_point:
-                self.cmd_pos[i] = sitting_point
-                self.cmd_vel[i] = 0.0
-                self.start_sitting [i] = True 
-            else: 
-                elapsed_duration = self.get_clock().now() - self.sit_start_time[i]
-                t [i] = (elapsed_duration.nanoseconds /1e9)
-            if t[i] < t_c:
-                if self.start_sitting [i]: 
-                    self.b [i] = self.currPos [i] 
-                    self.a [i] = (sitting_point -self.currPos [i])  / t_c 
-                    self.start_sitting [i] = False 
-                    
-                self.cmd_pos[i] = self.a[i] * t [i] + self.b[i] 
-                self.cmd_vel[i] = self.a[i]
-
-            else: 
-                self.cmd_pos[i] = sitting_point
-                self.cmd_vel[i] = 0.0
-                self.start_sitting [i] = True 
-                           
-    def simple_stand (self):
+        # create batch of 200 at each iteration 
+        #initializes command position vector 
+        self.r = np.zeros((200, 6))
+        self.r[0] = self.command_position.copy()
         
-        # given any initiali position further than 0 point by 0.1, it follows a linear interpolation to reach 0 in t_c time. If not reached withn t_c, directly go there. 
+        sim_time = 200 * self.delt
+        self.ttfinal = (
+            self.ttfinal
+            if self.ttfinal is not None and self.ttfinal < sim_time
+            else sim_time
+        )
+        self.tt = np.arange(0, self.ttfinal, self.delt)  
+        self.kfinal = 199 #number of time intervals 
+        return self.reset_input()
 
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6 
-        t = [0.0] *6 
-        t_c = 4.0   
+    def reset_input(self, *args, **kwargs):
+        auto = False
+        self.Gc = PID(
+            [10.0]*6,
+            [0.0]*6,
+            [0.0]*6,
+            setpoint=self.yinit,
+            sample_time=self.delt,
+            output_limits=(self.umin, self.umax),
+            auto_mode=auto,
+        )
+        self.Gc.set_auto_mode(not auto, last_output=self.uinit)
+        self.slew_rate = None
+        self.input_low = np.array(min_gains)
+        self.input_high = np.array(max_gains)
         
-                
-                
-        for i in range(6): 
+        # Input vector
+        self.input = np.zeros((200, 3, 6))
+        self.input[0] = np.ones((3, 6)) * np.array([[10.0]*6, [0.0]*6, [0.0]*6])
+        self.gains = []
+        self.gain_components = []
+        return self.reset_env(*args, **kwargs)
 
-            if -0.1< self.currPos[i] < 0.1:
-                self.cmd_pos[i] = 0.0
-                self.cmd_vel[i] = 0.0
-                self.start_standing [i] = True 
-            else: 
-                elapsed_duration = self.get_clock().now() - self.stand_start_time[i]
-                t [i] = (elapsed_duration.nanoseconds /1e9)
-            if t[i] < t_c:
-                if self.start_standing [i]: 
-                    self.b [i] = self.currPos [i] 
-                    self.a [i] = -self.currPos [i] / t_c 
-                    self.start_standing [i] = False 
-                    
-                self.cmd_pos[i] = self.a[i] * t [i] + self.b[i] 
-                self.cmd_vel[i] = self.a[i]
 
-            else: 
-                self.cmd_pos[i] = 0.0
-                self.cmd_vel[i] = 0.0
-                self.start_standing [i] = True 
+    def reset_env(self):
         
-    def simple_walk(self):
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6
-        current_time = self.get_clock().now()
-        elapsed_duration = current_time - self.start_time
-        elapsed_time = elapsed_duration.nanoseconds / 1e9
+        self.k = 0
+
+        # torque vector
+        self.u = np.zeros((200, 6))
+        self.u[0] = self.uinit.copy()
+        self.du = np.zeros((199, 6))
+
+        # environment State vector
+        self.x = np.zeros((200, 3, 6))
+        self.x[0] = np.array(self.xinit)
+
+        # position vector 
+        self.y = np.zeros((200, 6))
+        self.y[0] = self.yinit.copy()
+
+        # error vector
+        self.E = np.zeros((199, 6))
+        return self.r[self.k], self.y[self.k]
+    
+    def step_env(self, u):
         
-        t_c = 1.0
-        t_s = 0.5 
-        t_f = t_c - t_s
-        t_d = 0.01 
-        phi_s = 0.6
-                
-        t = elapsed_time % t_c
+        # error: command_position vs. current_position 
+        self.E[self.k] = self.r[self.k] - self.y[self.k]
         
-        v_s = phi_s / t_s 
-        v_f = (2 * math.pi - phi_s) / (t_c - t_s)
+        # gazebo torque input, no clipping, no slew rate 
+        #if self.slew_rate: u = np.clip(u,self.u[self.k - 1] - self.slew_rate,self.u[self.k - 1] + self.slew_rate)
+        #self.u[self.k] = np.clip(self.u[self.k], self.umin, self.umax)
+        self.u[self.k] = u        
         
-        # RIGHT TRIPOD
-        for i in [1, 3, 5]: 
-            if (0 <= t < t_s):
-                self.cmd_pos[i] = v_s *t - phi_s/2
-                self.cmd_vel[i] = v_s
-                            
-            elif (t_s <= t < t_c):
-                self.cmd_pos[i] = v_f * (t - t_s) + phi_s/2
-                self.cmd_vel[i] = v_f
-                            
-        # LEFT TRIPOD 
-        for i in [0, 2, 4]:
-            if (t_d <= t < t_d + t_f):
-                self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
-                self.cmd_vel[i] = v_f
-                            
-            elif (t_d + t_f <= t < t_c):
-                self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
-                self.cmd_vel[i] = v_s    
-                        
-            elif (0 <= t < t_d):
-                self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
-                self.cmd_vel[i] = v_s
+        # updates 
+        self.x[self.k + 1] = np.array([self.command_position.copy(), self.current_position.copy(), self.previous_position.copy()])
+        self.y[self.k + 1] = self.current_position.copy()
+        self.r[self.k + 1]= self.command_position.copy()
+        self.previous_position = self.current_position.copy()
+        self.current_position = self.current_topic_position.copy()
 
-        self.cmd_pos =  mod_operation(self.cmd_pos.copy())
-     
+        self.k = self.k + 1
+        return self.r[self.k], self.y[self.k]
 
-        if self.save_counter <= 2e3:
-            self.cmd_pos_save.append(self.cmd_pos.copy())
-            self.curr_pos_save.append(self.currPos.copy())
+    def step(self, Kp, taui, taud):
+        Ki = Kp / (taui + 0.01)
+        Kd = Kp * taud
+        self.Gc.setpoint = self.r[self.k]
+        self.Gc.tunings = (Kp, Ki, Kd)
+        u = self.Gc(self.y[self.k], self.delt)
+        
+        self.command_torque = u
+        self.input[self.k] = np.array([Kp, Ki, Kd])
+        self.gains.append([Kp, taui, taud])
+        self.gain_components.append(self.Gc.components)
+        
+        torque = Float64MultiArray()
+        torque.data = self.publish_torque(self.command_torque.copy())
+        self.command_torque_publisher.publish(torque)
+    
+        return self.step_env(u)     
+    
+    def get_state(self):
+        return np.array([self.r[self.k], self.y[self.k], self.y[self.k - 1]])
+    
+    def ise(self):
+        return float(np.sum((self.r[:self.k] - self.y[:self.k]) ** 2))
 
-            self.cmd_vel_save.append(self.cmd_vel.copy())
-            self.curr_vel_save.append(self.currVel.copy())
+    def iae(self):
+        return float(np.sum(np.abs(self.r[:self.k] - self.y[:self.k])))    
 
-            self.curr_Torq_save.append(self.currTorq.copy())
+    def get_axis(self, use_sample_instant=True):
+        axis = self.tt[: self.k].copy()
+        axis_name = "Time (min)"
+        if use_sample_instant:
+            axis = np.arange(self.k)
+            axis_name = "Sampling Instants"
+        return axis, axis_name
 
-            self.save_counter += 1
-            self.get_logger().info('saving')
+    def plot(self, save=False, use_sample_instant=True):
+        axis, axis_name = self.get_axis(use_sample_instant)
+        plt.figure(figsize=(16, 20))
+        plt.subplot(3, 1, 1)
+        plt.step(
+            axis, self.r[: self.k, 0], linestyle="dashed", label="Setpoint", where="post"
+        )
+        plt.plot(axis, self.y[: self.k, 0], label="Plant Output")
+        plt.ylabel("")
+        plt.xlabel(axis_name)
+        ise = f"{self.ise():.3e}"
+        title = f"ISE: {ise}"
+        plt.title(title)
+        plt.xlim(axis[0], axis[-1])
+        plt.grid()
+        plt.legend()
 
-        elif self.save_counter == 2e3 + 1:
-            self.get_logger().info('saving completed')
-            self.save_counter += 1 
+        plt.subplot(3, 1, 2)
+        plt.step(axis, self.u[: self.k, 0], label="Control Input", where="post")
+        plt.ylabel("")
+        plt.xlabel(axis_name)
+        plt.title("Control Action")
+        plt.xlim(axis[0], axis[-1])
+        plt.grid()
+        plt.legend()
+
+        plt.subplot(3, 1, 3)
+        for i in range(1):
+            plt.plot(
+                axis[:],
+                self.input[ : self.k, i, 0],
+                label=self.input_names[i],
+            )
+        plt.ylabel("Value")
+        plt.xlabel(axis_name)
+        plt.title("Inputs")
+        plt.xlim(axis[0], axis[-1])
+        plt.grid()
+        plt.legend()
+        if save:
+            plt.tight_layout()
+            img = fig2data(plt.gcf())
+            plt.close()
+            return img
+
+    def plot_gains(self, save=False, use_sample_instant=True):
+        axis, axis_name = self.get_axis(use_sample_instant)
+        plt.figure(figsize=(16, 12))
+        labels = ["$K_p$", "tau_I", "tau_D"]
+        for i in range(3):
+            plt.subplot(3, 1, i + 1)
+            plt.plot(
+                axis[ : len(self.gains)],
+                np.array(self.gains)[:-1, i, 0],
+                label=labels[i],
+            )
+            plt.ylabel("Value")
+            plt.xlabel(axis_name)
+            plt.xlim(axis[0], axis[-1])
+            plt.grid()
+            plt.legend()
+        if save:
+            plt.tight_layout()
+            img = fig2data(plt.gcf())
+            plt.close()
+            return img
+
+    def plot_actual_gains(self, save=False, use_sample_instant=True):
+        axis, axis_name = self.get_axis(use_sample_instant)
+        plt.figure(figsize=(16, 12))
+        labels = ["$K_p$", "$K_I$", "$K_D$"]
+        for i in range(3):
+            plt.subplot(3, 1, i + 1)
+            plt.plot(
+                axis,
+                np.array(self.input)[ : self.k, i, 0],
+                label=labels[i],
+            )
+            plt.ylabel("Value")
+            plt.xlabel(axis_name)
+            plt.xlim(axis[0], axis[-1])
+            plt.grid()
+            plt.legend()
+        if save:
+            plt.tight_layout()
+            img = fig2data(plt.gcf())
+            plt.close()
+            return img
+
+    def plot_gain_components(self, use_sample_instant=True):
+        axis, axis_name = self.get_axis(use_sample_instant)
+        plt.figure(figsize=(16, 9))
+        labels = ["Proportional", "Integral", "Derivative"]
+        for i in range(3):
+            plt.subplot(3, 1, i + 1)
+            plt.plot(
+                axis[: len(self.gain_components)],
+                np.array(self.gain_components)[:-1, i, 0],
+                label=labels[i],
+            )
+            plt.ylabel("Value")
+            plt.xlabel(axis_name)
+            plt.xlim(axis[0], axis[-1])
+            plt.grid()
+            plt.legend()
+ 
+    def command_position_callback(self, msg):
+        self.command_position = np.array(msg.data)
+        
+    def current_position_callback(self, msg):
+        self.current_topic_position = constrain_angle(np.array([*msg.position]))
+        self.current_topic_position = self.current_topic_position[[4, 2, 0, 5, 3, 1]]
+
+    def publish_torque(self, u):
+        applied_torque = np.array(u)
+        return list(u[[2, 5, 1, 4, 0, 3]])
+ 
+ 
+# CLASS: GymSystem 
+# communicates with the OptimizerNode and gets state and sends actions to it accordingly 
+class GymSystem(gym.Env):
+    def __init__(
+        self,
+        uinit=uinit,
+        yinit=yinit,
+        system=OptimizerNode,
+        disturbance=disturbance,
+        deterministic=deterministic,
+        disturbance_value=disturbance_value,
+    ):
+        super().__init__()
+
+        self.uinit = uinit
+        self.yinit = yinit
+        self.disturbance = disturbance
+        self.deterministic = deterministic
+        self.disturbance_value = disturbance_value
+        self.system = system(
+            uinit=self.uinit,
+            yinit=self.yinit,
+            disturbance=self.disturbance,
+            deterministic=self.deterministic,
+            disturbance_value=self.disturbance_value,
+        )
+
+        self.n_actions = (3, 6)
+        self.action_space = spaces.Box(-1.0, 1.0, (3,6))
+        self.n_states = (3, 6)
+        self.observation_space = spaces.Box(
+            low=-100.0, high=100.0, shape=self.n_states, dtype=np.float32
+        )
+       
+    def convert_state(self):
+        obs = self.system.get_state()
+        obs = np.array(obs).astype(np.float32)
+        return obs
+    
+    def convert_action(self, action):
+        actions = (action + 1) * (
+            self.system.input_high - self.system.input_low
+        ) * 0.5 + self.system.input_low
+        actions = np.clip(actions, self.system.input_low, self.system.input_high)
+        return actions
+
+    def unconvert_action(self, action):
+        actions = (2.0 * action - (self.system.input_high + self.system.input_low)) / (
+            self.system.input_high - self.system.input_low
+        )
+        actions = np.clip(actions, -1.0, 1.0)
+        return actions
+    
+    def reset(self):
+        _ = self.system.reset()
+        obs = self.convert_state()
+        return obs
+
+    def get_reward(self, obs):
+        # Calculate error and reward
+        e = obs[0] - obs[1]
+        ##############################ADDEEED################
+        sum_abs_e = np.sum(np.abs(e))  # Sum of absolute errors
+    
+        scale = 0.01 * 6
+        e_squared = scale * np.abs(e) ** 2
+        e_squared = np.minimum(e_squared, 5.0 *6 )
+        ######################### Sum the squared errors
+        sum_e_squared = np.sum(e_squared)
+        
+        tol = (2.0 * 6 - sum_abs_e) if sum_abs_e <= 0.01 * 6 else 0.0
+        reward = -sum_e_squared + tol
+        return reward
+    
+    def step(self, action, debug=False):
+        # sat_act = np.sum(action[action > 0.96]) + np.sum(action[action < -0.96])
+        if debug:
+            print("Original: ", action)
+        action = self.convert_action(action)
+        if debug:
+            print("Converted: ", action)
+        obs = self.system.step(*action)
+        reward = self.get_reward(obs)
+        done = bool(self.system.k == self.system.kfinal - 1)
+        info = {}
+        obs = self.convert_state()
+        return obs, reward, done, info
+    
+    def render(self, mode="human"):
+        if mode == "human":
+            print("ISE: ", self.system.ise())
+            self.system.plot()
+        elif mode == "rgb_array":
+            return self.system.plot(save=True)
+    
+    def close(self):
+        pass
+
+# Class: Action Repeat 
+# (not used currently) mechanism used in the mentioned paper for better optimization (details discussed in paper)
+class ActionRepeat(gym.Wrapper):
+    def __init__(self, env, amount=1):
+        super().__init__(env)
+        self.amount = amount
+
+    def step(self, action):
+        done = False
+        total_reward = 0
+        current_step = 0
+        while current_step < self.amount and not done:
+            obs, reward, done, info = self.env.step(action)
+            total_reward += reward
+            current_step += 1
+        return obs, total_reward, done, info
+
+# Class: EarlyStopping 
+# (not used currently) mechanism used in the mentioned paper for better stability/optimization (details discussed in paper)
+class EarlyStopping(gym.Wrapper):
+    def __init__(self, env, y_lim=[-100, 100]):
+        super().__init__(env)
+        self.y_lim = y_lim
+    #####################################################
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        
+        # Check if any value in self.env.system.y[self.env.system.k] is outside the limits
+        y_values = self.env.system.y[self.env.system.k]
+        if np.any(y_values > self.y_lim[1]) or np.any(y_values < self.y_lim[0]):
+            done = True
+            reward += -20.0  # Deduct a penalty reward
+
+        return obs, reward, done, info
+
+# Class: Config 
+# includes details of the training configuration 
+class Config:
+    model = "OptimizerNode"
+    algo = "PPO"
+    logdir = "logs"
+    action_repeat = 2
+    vec_normalize = True
+    early_stopping = False
+    mode = "train"
+
+# function for training the RL model 
+def run_rl_training():
+    env_model = Config.model
+    algo = Config.algo
+    log_dir = Config.logdir
+    action_repeat = False 
+    action_repeat_value = Config.action_repeat
+    vec_normalize = Config.vec_normalize
+    early_stopping = Config.early_stopping
+    mode = Config.mode
+
+    env_class = {"OptimizerNode": OptimizerNode,}[env_model]
+    print(env_class)
+
+    torch.autograd.set_detect_anomaly(True)
+    print("CUDA Available: ", torch.cuda.is_available())
+    
+    print("Using Early Stopping: ", early_stopping)
+    print("Using Action Repeat: ", False, action_repeat_value)
+    print("Using gSDE: ", False)
+    print("Using VecNormalize: ", vec_normalize)
+    print("Algorithm: ", algo)
+    extra = "BetterES_SystemFix"
+    tag_name = f"CS1_{env_model}_{algo}_AR_{action_repeat}_use_sde_False_ES_{early_stopping}_extra_{extra}"
+    print("Run Name: ", tag_name)
+
+    base_log = log_dir
+    log_dir = os.path.join(base_log, "CS1", tag_name)
+
+    save_callback = SaveBestModelCallback(check_freq=20000, log_dir=log_dir, verbose=1)
+
+    eval_env = GymSystem(system=env_class)
+    if early_stopping:
+        eval_env = EarlyStopping(eval_env)
+    if action_repeat:
+        eval_env = ActionRepeat(eval_env, action_repeat)
+    save_image_callback = EvalCallback(
+        eval_env=eval_env, eval_freq=50000, log_dir=None, name="Deterministic"
+    )
+    
+    eval_env2 = GymSystem(system=env_class, deterministic=True)
+    if early_stopping:
+        eval_env2 = EarlyStopping(eval_env2)
+    if action_repeat:
+        eval_env2 = ActionRepeat(eval_env2, action_repeat_value)
+    save_image_callback2 = EvalCallback(
+        eval_env=eval_env2, eval_freq=50000, log_dir=log_dir, name="Deterministic"
+    )
+
+    callback = CallbackList([save_callback, save_image_callback, save_image_callback2])
+    print(callback.callbacks)
+
+    env = GymSystem(system=env_class)
+    if early_stopping:
+        env = EarlyStopping(env)
+    if action_repeat:
+        env = ActionRepeat(env, action_repeat)
+    env = make_vec_env(lambda: env, n_envs=1, monitor_dir=log_dir)
+    if vec_normalize:
+        if os.path.exists(os.path.join(log_dir, "vec_normalize.pkl")):
+            print("Found VecNormalize Stats. Using stats")
+            env = VecNormalize.load(os.path.join(log_dir, "vec_normalize.pkl"), env)
         else:
-            self.save_counter += 1
+            print("No previous stats found. Using new VecNormalize instance.")
+            env = VecNormalize(env)
+    else:
+        env.normalize_obs = lambda x: x
 
-    def simple_walk_backwards (self):
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6
-        current_time = self.get_clock().now()
-        elapsed_duration = ((current_time- self.start_time)) 
-        elapsed_time = elapsed_duration.nanoseconds /1e9
-         
-        t_c = 1.0
-        t_s = 0.5 
-        t_f = t_c - t_s
-        t_d = 0.01 
-        phi_s = 0.6
-                
-        t = elapsed_time % t_c
-                
-        v_s = phi_s / t_s 
-        v_f = (2*math.pi - phi_s)/(t_c - t_s) 
-        
-                
-                
-        # RIGHT TRIPOD
-        for i in [1, 3, 5]: 
-            if (0 <= t < t_s):
-                self.cmd_pos[i] = - v_s *t + phi_s/2
-                self.cmd_vel[i] = - v_s
-                            
-            elif (t_s <= t < t_c):
-                self.cmd_pos[i] = - v_f * (t - t_s) - phi_s/2
-                self.cmd_vel[i] = - v_f
-                            
-        # LEFT TRIPOD 
-        for i in [0, 2, 4]:
-            if (t_d <= t < t_d + t_f):
-                self.cmd_pos[i] = - v_f *(t - t_d) - phi_s/2
-                self.cmd_vel[i] = - v_f
-                            
-            elif (t_d + t_f <= t < t_c):
-                self.cmd_pos[i] = - v_s * (t- (t_d + t_f)) - (2* math.pi - phi_s/2)
-                self.cmd_vel[i] = - v_s    
-                        
-            elif (0 <= t < t_d):
-                self.cmd_pos[i] = - v_s * (t + t_s - t_d) -  (2* math.pi -phi_s/2)
-                self.cmd_vel[i] = - v_s
-    
-    def simple_run (self):  
-        self.cmd_kp = [24.0] * 6
-        self.cmd_kd = [0.35] * 6
-        current_time = self.get_clock().now()
-        elapsed_duration = ((current_time- self.start_time)) 
-        elapsed_time = elapsed_duration.nanoseconds /1e9
-        
-        t_c = 0.6
-        t_s = 0.3
-        t_f = t_c - t_s
-        t_d = 0.0 
-        phi_s = 0.6
-                
-        t = elapsed_time % t_c
-                
-        v_s = phi_s / t_s
-        v_f = (2*math.pi - phi_s)/(t_c - t_s)
-                
-                
-        # RIGHT TRIPOD
-        for i in [1, 3, 5]: 
-            if (0 <= t < t_s):
-                self.cmd_pos[i] = v_s *t - phi_s/2
-                self.cmd_vel[i] = v_s
-                            
-            elif (t_s <= t < t_c):
-                self.cmd_pos[i] = v_f * (t - t_s) + phi_s/2
-                self.cmd_vel[i] = v_f
-                            
-        # LEFT TRIPOD 
-                
-            for i in [0, 2, 4]:
-                if (t_d <= t < t_d + t_f):
-                    self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
-                    self.cmd_vel[i] = v_f
-                            
-                elif (t_d + t_f <= t < t_c):
-                    self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
-                    self.cmd_vel[i] = v_s    
-                        
-                elif (0 <= t < t_d):
-                    self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
-                    self.cmd_vel[i] = v_s
-    
-    def simple_turn_right (self):
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6
-        current_time = self.get_clock().now()
-        elapsed_duration = ((current_time- self.start_time)) 
-        elapsed_time = elapsed_duration.nanoseconds /1e9
-                
-        t_c = 1.0
-        t_s = 0.5
-        t_f = t_c - t_s
-        t_d = 0.0
-        phi_s = 0.6
-                
-        t = elapsed_time % t_c
-                
-        v_s = phi_s / t_s
-        v_f = (2*math.pi - phi_s)/(t_c - t_s)
-                
-                
-        # RIGHT TRIPOD
-        for i in [1, 3, 5]: 
-            if (0 <= t < t_s):
-                self.cmd_pos[i] = - v_s *t + phi_s/2
-                self.cmd_vel[i] = - v_s
-                            
-            elif (t_s <= t < t_c):
-                self.cmd_pos[i] = - v_f * (t - t_s) - phi_s/2
-                self.cmd_vel[i] = - v_f
-                            
-        # LEFT TRIPOD 
-                
-        for i in [0, 2, 4]:
-            if (t_d <= t < t_d + t_f):
-                self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
-                self.cmd_vel[i] = v_f
-                            
-            elif (t_d + t_f <= t < t_c):
-                self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
-                self.cmd_vel[i] = v_s    
-                        
-            elif (0 <= t < t_d):
-                self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
-                self.cmd_vel[i] = v_s
-         
-    def simple_turn_left (self):
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6
-        current_time = self.get_clock().now()
-        elapsed_duration = ((current_time- self.start_time)) 
-        elapsed_time = elapsed_duration.nanoseconds /1e9
-                 
-                
-        t_c = 1.0
-        t_s = 0.5
-        t_f = t_c - t_s
-        t_d = 0.0
-        phi_s = 0.6
-                
-        t = elapsed_time % t_c
-                
-        v_s = phi_s / t_s
-        v_f = (2*math.pi - phi_s)/(t_c - t_s)
-                
-                
-        # RIGHT TRIPOD
-        for i in [1, 3, 5]: 
-            if (0 <= t < t_s):
-                self.cmd_pos[i] = v_s *t - phi_s/2
-                self.cmd_vel[i] = v_s
-                            
-            elif (t_s <= t < t_c):
-                self.cmd_pos[i] = v_f * (t - t_s) + phi_s/2
-                self.cmd_vel[i] = v_f
-                            
-        # LEFT TRIPOD 
-                
-        for i in [0, 2, 4]:
-            if (t_d <= t < t_d + t_f):
-                self.cmd_pos[i] = - v_f *(t - t_d) - phi_s/2
-                self.cmd_vel[i] = - v_f
-                            
-            elif (t_d + t_f <= t < t_c):
-                self.cmd_pos[i] = - v_s * (t- (t_d + t_f)) - (2* math.pi - phi_s/2)
-                self.cmd_vel[i] = - v_s    
-                        
-            elif (0 <= t < t_d):
-                self.cmd_pos[i] = - v_s * (t + t_s - t_d) - (2* math.pi -phi_s/2)
-                self.cmd_vel[i] = - v_s
-            
-    def simple_walk_and_turn (self):
+    env = VecCheckNan(env, raise_exception=True)
 
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6 
+    algo_class = getattr(stable_baselines3, algo)
+    model = algo_class("MlpPolicy", env, verbose=1, tensorboard_log=log_dir)
 
-        current_time = self.get_clock().now()
-        elapsed_duration = ((current_time - self.start_time)) 
-        elapsed_time = elapsed_duration.nanoseconds /1e9
-         
-        t_c = 1.0
-        t_s = 0.5
-        t_d = 0.00
-        phi_s = 0.6
-                
-        t = elapsed_time % t_c
-        delta_phi_s = 0.0
-        delta_t_s = self.delta_t_s
+    best_model_path = os.path.join(log_dir, "best_model.zip")
+    if os.path.exists(best_model_path) or mode == "test":
+        assert os.path.exists(best_model_path), f"Path doesn't exist: {best_model_path}"
+        print(f"Found previous checkpoint. Loading from checkpoint. {best_model_path}")
+        model = algo_class.load(best_model_path, env)
+    print(model)
 
-        if delta_t_s >0: 
-            delta_phi_s = 0.1
-        elif delta_t_s <0:
-            delta_phi_s = -0.1
-        else:
-            delta_phi_s = 0.0
+    if mode == "train":
+        tsteps = 500_000
+        model.learn(tsteps, reset_num_timesteps=False, callback=callback)
 
+    save_path = Path(log_dir).parts[-2:]
+    save_path = os.path.join(*save_path)
+    test_log_dir = os.path.join("..", "results", save_path, "test_files", "servo")
+    os.makedirs(test_log_dir, exist_ok=True)
 
-        t_s_l = t_s + delta_t_s
-        t_s_r = t_s - delta_t_s
+    test_env = GymSystem(system=env_class, disturbance=False, deterministic=True)
+    if action_repeat:
+        test_env = ActionRepeat(test_env, action_repeat)
+    evaluate(model, test_env, action_repeat, test_log_dir)
 
-         
-        t_f_r = t_c - t_s_r
-        t_f_l = t_c - t_s_l
-
-        phi_s_0_l = 0 + delta_phi_s
-        phi_s_0_r = 0 - delta_phi_s
-        
-        
-        v_s_r = phi_s / t_s_r
-        v_f_r = (2*math.pi - phi_s)/(t_c - t_s_r) 
-        
-        v_s_l = phi_s / t_s_l 
-        v_f_l = (2*math.pi - phi_s)/(t_c - t_s_l) 
-                
-                
-        # RIGHT TRIPOD
-        for i in [1, 3, 5]: 
-            if (0 <= t < t_s_r):
-                self.cmd_pos[i] = v_s_r *t - phi_s/2 + phi_s_0_r
-                self.cmd_vel[i] = v_s_r
-                            
-            elif (t_s_r <= t < t_c):
-                self.cmd_pos[i] = v_f_r * (t - t_s_r) + phi_s/2 + phi_s_0_r
-                self.cmd_vel[i] = v_f_r
-                            
-        # LEFT TRIPOD 
-        for i in [0, 2, 4]:
-            if (t_d <= t < t_d + t_f_l):
-                self.cmd_pos[i] = v_f_l *(t - t_d) + phi_s/2 + phi_s_0_l
-                self.cmd_vel[i] = v_f_l
-                            
-            elif (t_d + t_f_l <= t < t_c):
-                self.cmd_pos[i] = v_s_l * (t- (t_d + t_f_l)) + (2* math.pi - phi_s/2 + phi_s_0_l)
-                self.cmd_vel[i] = v_s_l    
-                        
-            elif (0 <= t < t_d):
-                self.cmd_pos[i] = v_s_l * (t + t_s_l - t_d) + (2* math.pi -phi_s /2 + phi_s_0_l)
-                self.cmd_vel[i] = v_s_l          
-    
-    def run(self):
-        
-        if (self.optimizer_node_enable):
-            
-            # SIT
-            if (self.state == 1):   
-
-                for i in range (6):
-                    if (self.start_sitting[i]):
-                        self.sit_start_time[i] = self.get_clock().now()
-
-                self.simple_sit()
-
-            # SIAND
-            if (self.state == 2):  
-
-                for i in range (6):
-                    if (self.start_standing[i]) :
-                        self.stand_start_time[i] = self.get_clock().now()
-                    else: 
-                        pass
-
-                self.simple_stand()
-                       
-            # WALK 
-            if (self.state == 3): 
-                self.simple_walk()  
-            
-            # WALK BACKWARDS 
-            if (self.state == 4): 
-                self.simple_walk_backwards()  
-
-            # RUN 
-            if (self.state == 5):
-                self.simple_run()
-                
-            # TURN RIGHT
-            if (self.state == 6): 
-                self.simple_turn_right()
-                
-            # TURN LEFT
-            if (self.state == 7):
-                self.simple_turn_left()
-
-            # WALK AND TURN 
-            if (self.state == 8):
-                self.simple_walk_and_turn()
-
-                        # WALK AND TURN 
-            
-            # Save walk data 
-            if self.state == 9:
-                if self.save_enable:
-                    self.curr_pos_save = np.array(self.curr_pos_save)
-                    self.curr_vel_save = np.array(self.curr_vel_save)
-                    self.curr_Torq_save = np.array(self.curr_Torq_save)
-                    self.cmd_pos_save = np.array(self.cmd_pos_save)
-                    self.cmd_vel_save = np.array(self.cmd_vel_save)
-                    
-
-                    data_dict = {
-                        'curr_pos': self.curr_pos_save,
-                        'curr_vel': self.curr_vel_save,
-                        'curr_Torq': self.curr_Torq_save,
-                        'cmd_pos': self.cmd_pos_save,
-                        'cmd_vel': self.cmd_vel_save
-                    }
-
-                
-                    savemat('/home/rhex/mnt/rhex_ws/src/rhex_control/scripts/plots_and_data/saved_data.mat', data_dict)
-                    self.save_enable = False
-
-
-        self.optimizer_node_enable = self.get_parameter('optimizer_node_enable').get_parameter_value().bool_value
-        self.state = self.get_parameter('state').get_parameter_value().integer_value
-        self.delta_t_s = -self.get_parameter('delta_t_s').get_parameter_value().double_value 
-
-        if self.newdata:
-            torque = Float64MultiArray()
-            torque.data = self.compute_controls()
-            if (self.optimizer_node_enable):
-                self.publisher.publish(torque)
-            self.newdata = False
-
-def mod_operation(cmd_pos):
-    return [(math.fmod(value + math.pi, 2 * math.pi) - math.pi) for value in cmd_pos]
-
-# Example usage:
-cmd_pos = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]  # Example list with 6 elements
-modified_cmd_pos = mod_operation(cmd_pos)
-
+# main function: runs the Optimizernode and run_rl_training concurrently using threading
 def main (args = None):
     rclpy.init(args = args)
     node = OptimizerNode()
+    
+    rl_thread = threading.Thread(target=run_rl_training)
+    rl_thread.start()
     
     try:
         rclpy.spin(node)
@@ -608,76 +613,8 @@ def main (args = None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
-          
+    rl_thread.join()
+
 if __name__ == '__main__':
     main()
-    
 
-"""    def simple_walk (self):
-        self.cmd_kp = [20.0] * 6
-        self.cmd_kd = [0.35] * 6
-        current_time = self.get_clock().now()
-        elapsed_duration = ((current_time- self.start_time)) 
-        elapsed_time = elapsed_duration.nanoseconds /1e9
-         
-        t_c = 1.0
-        t_s = 0.5 
-        t_f = t_c - t_s
-        t_d = 0.01 
-        phi_s = 0.6
-                
-        t = elapsed_time % t_c
-                
-        v_s = phi_s / t_s 
-        v_f = (2*math.pi - phi_s)/(t_c - t_s) 
-        
-                
-               
-        # RIGHT TRIPOD
-        for i in [1, 3, 5]: 
-            if (0 <= t < t_s):
-                self.cmd_pos[i] = v_s *t - phi_s/2
-                self.cmd_vel[i] = v_s
-                            
-            elif (t_s <= t < t_c):
-                self.cmd_pos[i] = v_f * (t - t_s) + phi_s/2
-                self.cmd_vel[i] = v_f
-                            
-        # LEFT TRIPOD 
-        for i in [0, 2, 4]:
-            if (t_d <= t < t_d + t_f):
-                self.cmd_pos[i] = v_f *(t - t_d) + phi_s/2
-                self.cmd_vel[i] = v_f
-                            
-            elif (t_d + t_f <= t < t_c):
-                self.cmd_pos[i] = v_s * (t- (t_d + t_f)) + (2* math.pi - phi_s/2)
-                self.cmd_vel[i] = v_s    
-                        
-            elif (0 <= t < t_d):
-                self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
-                self.cmd_vel[i] = v_s
-
-        if self.save_counter <= 2e3:
-
-            self.cmd_pos_save.append(self.cmd_pos)
-            self.curr_pos_save.append(self.currPos)
-
-            self.cmd_vel_save.append(self.cmd_vel)
-            self.curr_vel_save.append(self.currVel)
-
-            self.curr_Torq_save.append(self.currTorq)
-
-            self.save_counter = self.save_counter +1 
-
-
-            self.get_logger().info('saving')
-
-        elif self.save_counter == e3 +1: 
-            self.get_logger().info('saving completed')
-            self.save_counter = self.save_counter +1 
-        
-
-        else: 
-            self.save_counter = self.save_counter + 1
-
-"""
