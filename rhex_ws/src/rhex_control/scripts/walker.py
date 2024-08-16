@@ -21,8 +21,8 @@ class SimpleWalker(Node):
         
         
         # declared parameters for communicating with the terminal 
-        self.declare_parameter('state', 10)
-        self.declare_parameter('walker_enable', False)
+        self.declare_parameter('state', 3)
+        self.declare_parameter('walker_enable', True)
         self.declare_parameter('cmd_tau', [0.0]*6)
         self.declare_parameter('cmd_vel', [0.0]*6)
         self.declare_parameter('cmd_pos', [0.0]*6)
@@ -69,6 +69,9 @@ class SimpleWalker(Node):
         self.command_torque = [0.0] * 6
         self.command_torque_subscriber = self.create_subscription(Float64MultiArray, '/command_torque', self.callback_command_torque, 10)
         self.command_position_publisher = self.create_publisher(Float64MultiArray, 'command_position', 10)
+        self.command_velocity_publisher = self.create_publisher(Float64MultiArray, 'command_velocity', 10)
+        self.current_position_publisher = self.create_publisher(Float64MultiArray, 'current_position', 10)
+        self.current_velocity_publisher = self.create_publisher(Float64MultiArray, 'current_velocity', 10)
         
         self.create_timer(0.001, self.run)  
         self.get_logger().info("**************walker initialized****************")    
@@ -96,6 +99,7 @@ class SimpleWalker(Node):
     def callback_command_torque(self, msg):
         self.command_torque = msg.data   
     
+    
     def print_joint_state(self):
         if self.counter % 5 == 0:
             self.get_logger().info(f"current pose:{self.currPos}")
@@ -118,6 +122,24 @@ class SimpleWalker(Node):
         position = Float64MultiArray()
         position.data = list(cmdpos[[2, 5, 1, 4, 0, 3]])
         return position   
+    
+    def publish_command_velocity(self):
+        cmdvel = np.array(self.cmd_vel)
+        velocity = Float64MultiArray()
+        velocity.data = list(cmdvel[[2, 5, 1, 4, 0, 3]])
+        return velocity   
+    
+    def publish_current_position(self):
+        currPos = np.array(self.currPos)
+        position= Float64MultiArray()
+        position.data = list(currPos)
+        return position
+    
+    def publish_current_velocity(self):
+        currVel = np.array(self.currVel)
+        velocity= Float64MultiArray()
+        velocity.data = list(currVel)
+        return velocity
     
     def simple_sit (self): 
         
@@ -154,7 +176,7 @@ class SimpleWalker(Node):
         t_c = 4.0   
                
         for i in range(6): 
-
+          
             if -0.1< self.currPos[i] < 0.1:
                 self.cmd_pos[i] = 0.0
                 self.cmd_vel[i] = 0.0
@@ -223,9 +245,12 @@ class SimpleWalker(Node):
                 self.cmd_pos[i] = v_s * (t + t_s - t_d) + (2* math.pi -phi_s/2)
                 self.cmd_vel[i] = v_s
     
+    def constant_pos (self):
+        self.cmd_vel = np.zeros(6)
+        self.cmd_pos = np.zeros(6)
         
     def run(self):
-        
+
         if (self.walker_enable):
             
             #SIT
@@ -249,7 +274,10 @@ class SimpleWalker(Node):
             # WALK 
             if (self.state == 3): 
                 self.simple_walk()  
-                 
+             
+            # constant 
+            if (self.state == 10):
+                self.constant_pos()     
         self.walker_enable = self.get_parameter('walker_enable').get_parameter_value().bool_value
         self.state = self.get_parameter('state').get_parameter_value().integer_value
 
@@ -262,6 +290,18 @@ class SimpleWalker(Node):
         cmdpos = self.publish_command_position()
         if (self.walker_enable):
             self.command_position_publisher.publish(cmdpos)  
+        
+        cmdvel = self.publish_command_velocity()
+        if (self.walker_enable):
+            self.command_velocity_publisher.publish(cmdvel)  
+            
+        currentpos = self.publish_current_position()
+        if (self.walker_enable):
+            self.current_position_publisher.publish(currentpos)  
+        
+        currentvel = self.publish_current_velocity()
+        if (self.walker_enable):
+            self.current_velocity_publisher.publish(currentvel)  
         
         
 def main (args = None):
