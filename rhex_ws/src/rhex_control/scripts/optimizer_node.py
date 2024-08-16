@@ -1,27 +1,24 @@
 #!/usr/bin/env python3
 
 import rclpy
-from miscellaneous import constrain_angle
-import numpy as np
 from rclpy.node import Node
 from rclpy.clock import Clock
 import rclpy.parameter
 from std_msgs.msg import Float64MultiArray
 from sensor_msgs.msg import JointState
 from nav_msgs.msg import Odometry
+
+from miscellaneous import constrain_angle
+import numpy as np
 import math 
 import time 
-from pathlib import Path
 import matplotlib.pyplot as plt
-import numpy as np
-from gym import spaces
-from pid_controller import PID
-import gym 
-from test_model import evaluate
-from utils import fig2data
 import io
 import os
 import cv2
+
+import gym 
+from gym import spaces
 from scipy.integrate import solve_ivp
 import argparse
 import stable_baselines3
@@ -30,39 +27,141 @@ from stable_baselines3 import PPO, SAC
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecCheckNan, VecNormalize
-from callbacks import EvalCallback, SaveBestModelCallback
+
 import threading
+import roslibpy
 
 
-uinit = [10.0] * 6
-umin = -20.0
-umax = 20.0
-yinit = [0.0] * 6 
-delt = 0.001 
+uinit = np.ones(6) * 5.0
+umin = [[0.0]*6, [0.0]*6]
+umax = [[20.0]*6, [1.0]*6 ]
+yinit = np.zeros(6)
+delt = 0.001
 slew_rate = 5.0 
 disturbance = False
 deterministic = True
 disturbance_value = 0.0
 
-min_gains = np.array([[0.0]*6, [0.0]*6, [0.0]*6])
-max_gains = np.array([[40.0]*6, [2.0]*6, [2.0]*6])
 
-# PID Controller Optimization model's structure follows the alogorithm and template code provided in
-#"Reinforcement learning based adaptive PID controller design for control of linear/nonlinear unstable processes" paper 
+class OptimizerSystem:
+    """
+    The OptimizerSystem class is designed to:
+    1. Compute the PD controller's torque output. 
+    2. Communicate with walker node via subscribing to its current and command positions and velocity topics and publishing torque commands. 
+    2: Communicate with gym environment by sending state input (command position, current position, previous position) and recieving action output (Kp, Kd).
 
-# CLASS: OptimizerNode
-# sets up the dynamics of the input/output to be given to the RL model
-#ROS RELATED
-# 1. communicates with gazebo by recieving join states topic (current_topic_positions) 
-# 2. communicates with the walker node by subscribing to its command topic (command positions) 
-# 3. publishes torque commands to the walker node which are then send to gazebo based on walker node's counter frequency (real time)
-#OPTIMIZATION RELATED
-# 1. state: command_position, current_position, previous_position 
-# 2: input: Kp, Kd, Ki 
-# 3. output of the model is the command torque which is published to walker node at each step.
-# 4.communicates with gym environment via its its state and output
-  
-class OptimizerNode(Node):
+    It integrates with ROS through the roslibpy library and allows for the subscription to and publication
+    of relevant topics. The class also manages simulation parameters, environment states, and system inputs.
+
+    Attributes:
+    -----------
+    client : roslibpy.Ros
+        The ROS client used for communication.
+        
+    command_position : numpy.ndarray
+        Array to store the command position values received from ROS topics.
+    command_velocity : numpy.ndarray
+        Array to store the command velocity values received from ROS topics.
+    current_position : numpy.ndarray
+        Array to store the current position values received from ROS topics.
+    current_velocity : numpy.ndarray
+        Array to store the current velocity values received from ROS topics.
+    command_torque : numpy.ndarray
+        Array to store the command torque values to be published.
+    previous_position : numpy.ndarray
+        Array to store the previous position values.
+        
+    delt : float
+        Time step for the simulation.
+    ttfinal : float
+        Final time for the simulation.
+    umin : numpy.ndarray
+        Minimum limits for the input vector.
+    umax : numpy.ndarray
+        Maximum limits for the input vector.
+    uinit : numpy.ndarray
+        Initial input values.
+    yinit : numpy.ndarray
+        Initial output values.
+    xinit : numpy.ndarray
+        Initial state values for the system.
+        
+    r : numpy.ndarray
+        Array to store the reference trajectory.
+    u : numpy.ndarray
+        Array to store the input torque values.
+    du : numpy.ndarray
+        Array to store the changes in input torque.
+    x : numpy.ndarray
+        Array to store the state values of the system.
+    y : numpy.ndarray
+        Array to store the output values of the system.
+    E : numpy.ndarray
+        Array to store the error values between the reference and output.
+    k : int
+        Index for the current simulation step.
+    kfinal : int
+        Final index for the simulation steps.
+    input : numpy.ndarray
+        Array to store the input values for the control system.
+
+    Methods:
+    --------
+    __init__(self, uinit, yinit, delt, ttfinal=None, disturbance, deterministic, disturbance_value):
+        Initializes the OptimizerSystem with the given parameters.
+        
+    command_position_callback(self, message):
+        Callback function for updating the command position from ROS topics.
+        
+    command_velocity_callback(self, message):
+        Callback function for updating the command velocity from ROS topics.
+        
+    current_position_callback(self, message):
+        Callback function for updating the current position from ROS topics.
+        
+    current_velocity_callback(self, message):
+        Callback function for updating the current velocity from ROS topics.
+        
+    publish_torque(self, u):
+        Publishes the computed torque values to the corresponding ROS topic.
+        
+    state_names(self):
+        Property to return the names of the states being tracked.
+        
+    input_names(self):
+        Property to return the names of the inputs being controlled.
+        
+    n_states(self):
+        Property to return the number of states in the system.
+        
+    n_actions(self):
+        Property to return the number of actions (or inputs) in the system.
+        
+    reset(self):
+        Resets the system's state, input, and output vectors to their initial values.
+        
+    reset_input(self, *args, **kwargs):
+        Resets the input vectors in preparation for a new simulation episode.
+        
+    reset_env(self):
+        Resets the environment state, position, and error vectors for a new simulation episode.
+        
+    step(self, Kp, Kd):
+        Performs a simulation step by computing the control input based on the given Kp and Kd values,
+        updating the system's state, and applying the input to the system.
+        
+    get_state(self):
+        Returns the current state of the system as an array.
+        
+    ise(self):
+        Computes and returns the integral of the squared error (ISE) over the simulation period.
+        
+    iae(self):
+        Computes and returns the integral of the absolute error (IAE) over the simulation period.
+        
+    shutdown(self):
+        Unsubscribes from ROS topics and terminates the ROS client connection.
+    """
     
     def __init__(
         self,
@@ -70,101 +169,110 @@ class OptimizerNode(Node):
         yinit=yinit,
         delt=delt,
         ttfinal=None,
-        disturbance=disturbance,
-        deterministic=deterministic,
-        disturbance_value=disturbance_value,
     ):
-        super().__init__('optimizer_node')
         
-        
-        # ROS2 RELATED ************************************************
-        # variables 
-        self.current_topic_position = np.zeros(6)
+        # ROSLIBPY RELATED ************************************************
+        self.client = roslibpy.Ros(host='localhost', port=9090)
+        self.client.run()
+
         self.command_position = np.zeros(6)
-        self.current_position = np.zeros(6)
-        self.previous_position = np.zeros(6)
-        self.command_torque = np.zeros(6)
-        # Topics
-        self.command_position_subscriber_ = self.create_subscription(Float64MultiArray,'/command_position',self.command_position_callback,10)
-        self.subJoints_subscriber_ = self.create_subscription(JointState, '/joint_states', self.current_position_callback, 10)
-        self.command_torque_publisher = self.create_publisher(Float64MultiArray,'/command_torque',10)
-        self.get_logger().info("**************optimizer_node initialized****************")  
+        self.command_velocity = np.zeros(6)
         
+        self.current_position = np.zeros(6)
+        self.current_velocity = np.zeros(6)
+        
+        self.previous_position = np.zeros(6)
+        self.previous_velocity = np.zeros(6)
+        self.command_torque = np.zeros(6)
+
+        # ROS subscriptions
+        self.command_position_subscriber = roslibpy.Topic(self.client, '/command_position', 'std_msgs/Float64MultiArray')
+        self.command_velocity_subscriber = roslibpy.Topic(self.client, '/command_velocity', 'std_msgs/Float64MultiArray')
+        self.current_position_subscriber = roslibpy.Topic(self.client, '/current_position', 'std_msgs/Float64MultiArray')
+        self.current_velocity_subscriber = roslibpy.Topic(self.client, '/current_velocity', 'std_msgs/Float64MultiArray')
+        
+        self.command_position_subscriber.subscribe(self.command_position_callback)
+        self.command_velocity_subscriber.subscribe(self.command_velocity_callback)
+        self.current_position_subscriber.subscribe(self.current_position_callback)
+        self.current_velocity_subscriber.subscribe(self.current_velocity_callback)
+
+        # ROS publisher
+        self.command_torque_publisher = roslibpy.Topic(self.client, '/command_torque', 'std_msgs/Float64MultiArray')
+
         # Simulation settings **********************************************************
         self.delt = delt  
         self.ttfinal = ttfinal  
-        self.slew_rate = slew_rate
-        self.umin = umin
-        self.umax = umax
+        self.umin = np.array(umin)
+        self.umax = np.array(umax)
         self.input_low = self.umin
         self.input_high = self.umax
-        self.disturbance_value = disturbance_value
         self.uinit = np.array(uinit)
-        self.yinit = self.previous_position.copy()
-        self.disturbance = disturbance
-        self.deterministic = deterministic
-        self.xinit = np.array([self.command_position.copy(), self.current_position.copy(), self.previous_position.copy()])
+        self.yinit = np.array([self.current_position, self.current_velocity])
+        self.xinit = np.array([[self.command_position, self.command_velocity], [self.current_position, self.current_velocity], [self.previous_position, self.previous_velocity]])
         self.reset()    
+        
+    def command_position_callback(self, message):
+        self.command_position = np.array(message['data'])
 
+    def command_velocity_callback(self, message):
+        self.command_velocity = np.array(message['data'])
+        
+    def current_position_callback(self, message):
+        self.previous_position = self.current_position
+        self.current_position = np.array(message['data'])
+        
+    def current_velocity_callback(self, message):
+        self.previous_velocity = self.current_velocity
+        self.current_velocity = np.array(message['data'])
 
+    def publish_torque(self, u):
+        torque = roslibpy.Message({'data': list(u[[2, 5, 1, 4, 0, 3]])})
+        self.command_torque_publisher.publish(torque)
+        
     @property
     def state_names(self):
-        names = ["Setpoint(k)", "Output(k)", "Output(k-1)"]
-        assert len(names) == self.n_states
+        names = ["Position Setpoint(k)",  "Velocity Setpoint(k)", "Position Output(k)", "Velocity Output (k)", "Velocity Output(k-1)", "Position Output(k-1)"]
+        assert len(names) == 6 #self.n_states
         return names
 
     @property
     def input_names(self):
-        return ["Kp(k)", "Ki(k)", "Kd(k)"]
+        return ["Kp(k)", "Kd(k)"]
     
     @property
     def n_states(self):
-        return len(self.get_state())
+        return (3, 2, 6)
 
     @property
     def n_actions(self):
-        return self.input_low.shape[0]
+        return (2, 6)
 
     def reset(self):
         
-        # create batch of 200 at each iteration 
-        #initializes command position vector 
-        self.r = np.zeros((200, 6))
-        self.r[0] = self.command_position.copy()
+        self.r = np.zeros((200, 2, 6))
+
+        self.r[0] = np.array([self.command_position, self.command_velocity])
         
         sim_time = 200 * self.delt
+        
         self.ttfinal = (
             self.ttfinal
             if self.ttfinal is not None and self.ttfinal < sim_time
             else sim_time
         )
-        self.tt = np.arange(0, self.ttfinal, self.delt)  
-        self.kfinal = 199 #number of time intervals 
+        
+        self.tt = np.arange(0, self.ttfinal, self.delt) 
+         
+        self.kfinal = 199
+        
         return self.reset_input()
 
     def reset_input(self, *args, **kwargs):
-        auto = False
-        self.Gc = PID(
-            [10.0]*6,
-            [0.0]*6,
-            [0.0]*6,
-            setpoint=self.yinit,
-            sample_time=self.delt,
-            output_limits=(self.umin, self.umax),
-            auto_mode=auto,
-        )
-        self.Gc.set_auto_mode(not auto, last_output=self.uinit)
-        self.slew_rate = None
-        self.input_low = np.array(min_gains)
-        self.input_high = np.array(max_gains)
         
-        # Input vector
-        self.input = np.zeros((200, 3, 6))
-        self.input[0] = np.ones((3, 6)) * np.array([[10.0]*6, [0.0]*6, [0.0]*6])
-        self.gains = []
-        self.gain_components = []
+        
+        self.input = np.zeros((200, 2, 6))
+        self.input[0] = np.ones((2, 6)) * np.array([[10.0]*6, [0.3]*6])
         return self.reset_env(*args, **kwargs)
-
 
     def reset_env(self):
         
@@ -172,23 +280,43 @@ class OptimizerNode(Node):
 
         # torque vector
         self.u = np.zeros((200, 6))
-        self.u[0] = self.uinit.copy()
+        self.u[0] = self.uinit
         self.du = np.zeros((199, 6))
 
         # environment State vector
-        self.x = np.zeros((200, 3, 6))
+        self.x = np.zeros((200, 3, 2, 6))
         self.x[0] = np.array(self.xinit)
 
         # position vector 
-        self.y = np.zeros((200, 6))
-        self.y[0] = self.yinit.copy()
+        self.y = np.zeros((200, 2, 6))
+        self.y[0] = self.yinit
 
         # error vector
-        self.E = np.zeros((199, 6))
+        self.E = np.zeros((199, 2, 6))
         return self.r[self.k], self.y[self.k]
-    
-    def step_env(self, u):
         
+    
+    def step(self, Kp, Kd):
+        #print(self.opt_node.current_position)
+        #print("step", " , Kd: ", Kd, " Kp: ", Kp)
+        
+        self.input[self.k] = np.array([Kp, Kd])
+        
+        
+        u = Kp * (self.command_position - self.current_position) + Kd * (self.command_velocity - self.current_velocity)
+        
+        min_limit = -10.0
+        max_limit = 10.0
+
+        # Apply min-max limits to u
+        u = np.clip(u, min_limit, max_limit)
+        
+        #print(self.command_position)
+        #print("self.command_position", self.command_position)
+        #print("self.current_position", self.current_position)
+        
+        self.publish_torque(u)
+
         # error: command_position vs. current_position 
         self.E[self.k] = self.r[self.k] - self.y[self.k]
         
@@ -198,33 +326,14 @@ class OptimizerNode(Node):
         self.u[self.k] = u        
         
         # updates 
-        self.x[self.k + 1] = np.array([self.command_position.copy(), self.current_position.copy(), self.previous_position.copy()])
-        self.y[self.k + 1] = self.current_position.copy()
-        self.r[self.k + 1]= self.command_position.copy()
-        self.previous_position = self.current_position.copy()
-        self.current_position = self.current_topic_position.copy()
+        self.x[self.k + 1] = np.array([[self.command_position, self.command_velocity], [self.current_position,  self.current_velocity], [self.previous_position, self.previous_velocity]])
+        self.y[self.k + 1] = np.array([self.current_position, self.current_velocity])
+        self.r[self.k + 1]= np.array([self.command_position, self.command_velocity])
+        
 
         self.k = self.k + 1
         return self.r[self.k], self.y[self.k]
-
-    def step(self, Kp, taui, taud):
-        Ki = Kp / (taui + 0.01)
-        Kd = Kp * taud
-        self.Gc.setpoint = self.r[self.k]
-        self.Gc.tunings = (Kp, Ki, Kd)
-        u = self.Gc(self.y[self.k], self.delt)
         
-        self.command_torque = u
-        self.input[self.k] = np.array([Kp, Ki, Kd])
-        self.gains.append([Kp, taui, taud])
-        self.gain_components.append(self.Gc.components)
-        
-        torque = Float64MultiArray()
-        torque.data = self.publish_torque(self.command_torque.copy())
-        self.command_torque_publisher.publish(torque)
-    
-        return self.step_env(u)     
-    
     def get_state(self):
         return np.array([self.r[self.k], self.y[self.k], self.y[self.k - 1]])
     
@@ -233,163 +342,25 @@ class OptimizerNode(Node):
 
     def iae(self):
         return float(np.sum(np.abs(self.r[:self.k] - self.y[:self.k])))    
-
-    def get_axis(self, use_sample_instant=True):
-        axis = self.tt[: self.k].copy()
-        axis_name = "Time (min)"
-        if use_sample_instant:
-            axis = np.arange(self.k)
-            axis_name = "Sampling Instants"
-        return axis, axis_name
-
-    def plot(self, save=False, use_sample_instant=True):
-        axis, axis_name = self.get_axis(use_sample_instant)
-        plt.figure(figsize=(16, 20))
-        plt.subplot(3, 1, 1)
-        plt.step(
-            axis, self.r[: self.k, 0], linestyle="dashed", label="Setpoint", where="post"
-        )
-        plt.plot(axis, self.y[: self.k, 0], label="Plant Output")
-        plt.ylabel("")
-        plt.xlabel(axis_name)
-        ise = f"{self.ise():.3e}"
-        title = f"ISE: {ise}"
-        plt.title(title)
-        plt.xlim(axis[0], axis[-1])
-        plt.grid()
-        plt.legend()
-
-        plt.subplot(3, 1, 2)
-        plt.step(axis, self.u[: self.k, 0], label="Control Input", where="post")
-        plt.ylabel("")
-        plt.xlabel(axis_name)
-        plt.title("Control Action")
-        plt.xlim(axis[0], axis[-1])
-        plt.grid()
-        plt.legend()
-
-        plt.subplot(3, 1, 3)
-        for i in range(1):
-            plt.plot(
-                axis[:],
-                self.input[ : self.k, i, 0],
-                label=self.input_names[i],
-            )
-        plt.ylabel("Value")
-        plt.xlabel(axis_name)
-        plt.title("Inputs")
-        plt.xlim(axis[0], axis[-1])
-        plt.grid()
-        plt.legend()
-        if save:
-            plt.tight_layout()
-            img = fig2data(plt.gcf())
-            plt.close()
-            return img
-
-    def plot_gains(self, save=False, use_sample_instant=True):
-        axis, axis_name = self.get_axis(use_sample_instant)
-        plt.figure(figsize=(16, 12))
-        labels = ["$K_p$", "tau_I", "tau_D"]
-        for i in range(3):
-            plt.subplot(3, 1, i + 1)
-            plt.plot(
-                axis[ : len(self.gains)],
-                np.array(self.gains)[:-1, i, 0],
-                label=labels[i],
-            )
-            plt.ylabel("Value")
-            plt.xlabel(axis_name)
-            plt.xlim(axis[0], axis[-1])
-            plt.grid()
-            plt.legend()
-        if save:
-            plt.tight_layout()
-            img = fig2data(plt.gcf())
-            plt.close()
-            return img
-
-    def plot_actual_gains(self, save=False, use_sample_instant=True):
-        axis, axis_name = self.get_axis(use_sample_instant)
-        plt.figure(figsize=(16, 12))
-        labels = ["$K_p$", "$K_I$", "$K_D$"]
-        for i in range(3):
-            plt.subplot(3, 1, i + 1)
-            plt.plot(
-                axis,
-                np.array(self.input)[ : self.k, i, 0],
-                label=labels[i],
-            )
-            plt.ylabel("Value")
-            plt.xlabel(axis_name)
-            plt.xlim(axis[0], axis[-1])
-            plt.grid()
-            plt.legend()
-        if save:
-            plt.tight_layout()
-            img = fig2data(plt.gcf())
-            plt.close()
-            return img
-
-    def plot_gain_components(self, use_sample_instant=True):
-        axis, axis_name = self.get_axis(use_sample_instant)
-        plt.figure(figsize=(16, 9))
-        labels = ["Proportional", "Integral", "Derivative"]
-        for i in range(3):
-            plt.subplot(3, 1, i + 1)
-            plt.plot(
-                axis[: len(self.gain_components)],
-                np.array(self.gain_components)[:-1, i, 0],
-                label=labels[i],
-            )
-            plt.ylabel("Value")
-            plt.xlabel(axis_name)
-            plt.xlim(axis[0], axis[-1])
-            plt.grid()
-            plt.legend()
- 
-    def command_position_callback(self, msg):
-        self.command_position = np.array(msg.data)
-        
-    def current_position_callback(self, msg):
-        self.current_topic_position = constrain_angle(np.array([*msg.position]))
-        self.current_topic_position = self.current_topic_position[[4, 2, 0, 5, 3, 1]]
-
-    def publish_torque(self, u):
-        applied_torque = np.array(u)
-        return list(u[[2, 5, 1, 4, 0, 3]])
- 
+    
+    def shutdown(self):
+        self.command_position_subscriber.unsubscribe()
+        self.command_velocity_subscriber.unsubscribe()
+        self.current_position_subscriber.unsubscribe()
+        self.client.terminate()
  
 # CLASS: GymSystem 
 # communicates with the OptimizerNode and gets state and sends actions to it accordingly 
 class GymSystem(gym.Env):
-    def __init__(
-        self,
-        uinit=uinit,
-        yinit=yinit,
-        system=OptimizerNode,
-        disturbance=disturbance,
-        deterministic=deterministic,
-        disturbance_value=disturbance_value,
-    ):
+    def __init__(self,system_instance ):
         super().__init__()
 
-        self.uinit = uinit
-        self.yinit = yinit
-        self.disturbance = disturbance
-        self.deterministic = deterministic
-        self.disturbance_value = disturbance_value
-        self.system = system(
-            uinit=self.uinit,
-            yinit=self.yinit,
-            disturbance=self.disturbance,
-            deterministic=self.deterministic,
-            disturbance_value=self.disturbance_value,
-        )
+        # Use the passed instance of OptimizerSystem
+        self.system = system_instance
 
-        self.n_actions = (3, 6)
-        self.action_space = spaces.Box(-1.0, 1.0, (3,6))
-        self.n_states = (3, 6)
+        self.n_actions = (2, 6)
+        self.action_space = spaces.Box(-1.0, 1.0, shape = self.n_actions)
+        self.n_states = (3, 2, 6)
         self.observation_space = spaces.Box(
             low=-100.0, high=100.0, shape=self.n_states, dtype=np.float32
         )
@@ -420,17 +391,17 @@ class GymSystem(gym.Env):
 
     def get_reward(self, obs):
         # Calculate error and reward
-        e = obs[0] - obs[1]
-        ##############################ADDEEED################
+        e = obs[0] - obs[1] 
         sum_abs_e = np.sum(np.abs(e))  # Sum of absolute errors
     
-        scale = 0.01 * 6
-        e_squared = scale * np.abs(e) ** 2
-        e_squared = np.minimum(e_squared, 5.0 *6 )
+        scale = 0.01 
+        #e_squared = scale * np.abs(e) ** 2
+        e_squared = np.abs(e) ** 2
+        #e_squared = np.minimum(e_squared, 5.0)
         ######################### Sum the squared errors
         sum_e_squared = np.sum(e_squared)
         
-        tol = (2.0 * 6 - sum_abs_e) if sum_abs_e <= 0.01 * 6 else 0.0
+        tol = (2.0 - sum_abs_e) if sum_abs_e <= 0.01  else 0.0
         reward = -sum_e_squared + tol
         return reward
     
@@ -449,11 +420,7 @@ class GymSystem(gym.Env):
         return obs, reward, done, info
     
     def render(self, mode="human"):
-        if mode == "human":
-            print("ISE: ", self.system.ise())
-            self.system.plot()
-        elif mode == "rgb_array":
-            return self.system.plot(save=True)
+        pass
     
     def close(self):
         pass
@@ -496,72 +463,53 @@ class EarlyStopping(gym.Wrapper):
 # Class: Config 
 # includes details of the training configuration 
 class Config:
-    model = "OptimizerNode"
+    model = "OptimizerSystem"
     algo = "PPO"
     logdir = "logs"
     action_repeat = 2
     vec_normalize = True
-    early_stopping = False
-    mode = "train"
+    early_stopping = True
+    mode = "train"  # Change to "test" when you want to test the model
 
 # function for training the RL model 
-def run_rl_training():
+def run_rl_training(system):
     env_model = Config.model
     algo = Config.algo
     log_dir = Config.logdir
-    action_repeat = False 
+    action_repeat = True 
     action_repeat_value = Config.action_repeat
     vec_normalize = Config.vec_normalize
     early_stopping = Config.early_stopping
     mode = Config.mode
 
-    env_class = {"OptimizerNode": OptimizerNode,}[env_model]
+    env_class = {"OptimizerSystem": OptimizerSystem,}[env_model]
     print(env_class)
 
     torch.autograd.set_detect_anomaly(True)
     print("CUDA Available: ", torch.cuda.is_available())
     
     print("Using Early Stopping: ", early_stopping)
-    print("Using Action Repeat: ", False, action_repeat_value)
+    print("Using Action Repeat: ", True , action_repeat_value)
     print("Using gSDE: ", False)
     print("Using VecNormalize: ", vec_normalize)
     print("Algorithm: ", algo)
     extra = "BetterES_SystemFix"
-    tag_name = f"CS1_{env_model}_{algo}_AR_{action_repeat}_use_sde_False_ES_{early_stopping}_extra_{extra}"
+    tag_name = f"Rhex_state_10_Constant_Zero_Command_{env_model}_{algo}_AR_{action_repeat}_use_sde_False_ES_{early_stopping}_extra_{extra}"
     print("Run Name: ", tag_name)
 
     base_log = log_dir
-    log_dir = os.path.join(base_log, "CS1", tag_name)
-
-    save_callback = SaveBestModelCallback(check_freq=20000, log_dir=log_dir, verbose=1)
-
-    eval_env = GymSystem(system=env_class)
-    if early_stopping:
-        eval_env = EarlyStopping(eval_env)
-    if action_repeat:
-        eval_env = ActionRepeat(eval_env, action_repeat)
-    save_image_callback = EvalCallback(
-        eval_env=eval_env, eval_freq=50000, log_dir=None, name="Deterministic"
-    )
+    log_dir = os.path.join(base_log, "Rhex_state_10" , tag_name)
     
-    eval_env2 = GymSystem(system=env_class, deterministic=True)
-    if early_stopping:
-        eval_env2 = EarlyStopping(eval_env2)
-    if action_repeat:
-        eval_env2 = ActionRepeat(eval_env2, action_repeat_value)
-    save_image_callback2 = EvalCallback(
-        eval_env=eval_env2, eval_freq=50000, log_dir=log_dir, name="Deterministic"
-    )
 
-    callback = CallbackList([save_callback, save_image_callback, save_image_callback2])
-    print(callback.callbacks)
-
-    env = GymSystem(system=env_class)
+    # Pass the system instance to GymSystem
+    env = GymSystem(system_instance=system)
+    
     if early_stopping:
         env = EarlyStopping(env)
     if action_repeat:
         env = ActionRepeat(env, action_repeat)
     env = make_vec_env(lambda: env, n_envs=1, monitor_dir=log_dir)
+    
     if vec_normalize:
         if os.path.exists(os.path.join(log_dir, "vec_normalize.pkl")):
             print("Found VecNormalize Stats. Using stats")
@@ -577,44 +525,81 @@ def run_rl_training():
     algo_class = getattr(stable_baselines3, algo)
     model = algo_class("MlpPolicy", env, verbose=1, tensorboard_log=log_dir)
 
-    best_model_path = os.path.join(log_dir, "best_model.zip")
-    if os.path.exists(best_model_path) or mode == "test":
-        assert os.path.exists(best_model_path), f"Path doesn't exist: {best_model_path}"
-        print(f"Found previous checkpoint. Loading from checkpoint. {best_model_path}")
-        model = algo_class.load(best_model_path, env)
-    print(model)
-
+    best_reward = -np.inf
+    
     if mode == "train":
         tsteps = 500_000
-        model.learn(tsteps, reset_num_timesteps=False, callback=callback)
+        for step in range (tsteps):
+            model.learn(400, reset_num_timesteps = False)
+            current_reward = evaluate_model(model, env) 
+            
 
-    save_path = Path(log_dir).parts[-2:]
-    save_path = os.path.join(*save_path)
-    test_log_dir = os.path.join("..", "results", save_path, "test_files", "servo")
-    os.makedirs(test_log_dir, exist_ok=True)
 
-    test_env = GymSystem(system=env_class, disturbance=False, deterministic=True)
-    if action_repeat:
-        test_env = ActionRepeat(test_env, action_repeat)
-    evaluate(model, test_env, action_repeat, test_log_dir)
+            if current_reward > best_reward:
+                best_reward = current_reward
+                model.save(os.path.join(log_dir, "best_model"))
+                print(f"New best model saved with reward: {best_reward}")
 
-# main function: runs the Optimizernode and run_rl_training concurrently using threading
-def main (args = None):
-    rclpy.init(args = args)
-    node = OptimizerNode()
+def evaluate_model(model, env, num_episodes=5):
+    total_reward = 0.0
+    for _ in range(num_episodes):
+        obs = env.reset()
+        done = False
+        while not done:
+            action, _ = model.predict(obs)
+            obs, reward, done, _ = env.step(action)
+            total_reward += reward
+    average_reward = total_reward / num_episodes
+    return average_reward
+
+
+def main(args=None):
+    node = OptimizerSystem()  # Ensure OptimizerSystem is using roslibpy internally
+
+    if Config.mode == "train":
+        # Training thread
+        rl_thread = threading.Thread(target=run_rl_training, args=(node,))
+        rl_thread.start()
+        rl_thread.join()
     
-    rl_thread = threading.Thread(target=run_rl_training)
-    rl_thread.start()
-    
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
-    rl_thread.join()
+    elif Config.mode == "test":
+        
+        model = PPO.load(os.path.join("logs/Rhex_state_10/Rhex_state_10_Constant_Zero_Command_OptimizerSystem_PPO_AR_True_use_sde_False_ES_True_extra_BetterES_SystemFix/", "best_model"))  
+        env = GymSystem(system_instance=node)  # Initialize the environment
+        obs = env.reset()
+        try:
+            while True:
+                action, _ = model.predict(obs)
+                obs, reward, done, info = env.step(action)
+                
+        except KeyboardInterrupt:
+            print("Evaluation interrupted by user")
+        
+        finally:
+            node.shutdown()
+
+    node.shutdown()
+
 
 if __name__ == '__main__':
     main()
+
+
+# Function to evaluate the model
+def evaluate_model(env, model, duration=None):
+    obs = env.reset()
+    start_time = time.time()
+    elapsed_time = 0
+
+    while duration is None or elapsed_time < duration:
+        with torch.no_grad():
+            action, _ = model.predict(obs, deterministic=True)
+
+        env.step(action)
+        obs = env.get_observation()
+
+        # Sleep for 0.001 seconds between each action
+        time.sleep(0.001)
+
+        elapsed_time = time.time() - start_time
 
