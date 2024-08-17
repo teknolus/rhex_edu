@@ -7,24 +7,12 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
 
-    load_joint_state_controller = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-             'joint_states_controller'],
-        output='screen',
-    )
-
-    load_effort_controller = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
-             'effort_controller'],
-        output='screen'
-    )
-
-    optimizer_node = Node(
+    optimizer_sys = Node(
         package="rhex_control", 
-        executable= "optimizer_node.py",
+        executable= "optimizer_system.py",
         output="screen",
     )
 
     return LaunchDescription([
-        optimizer_node,
+        optimizer_sys,
     ])
