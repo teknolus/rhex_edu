@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+# Same as the controller used in previous task with the following modifications:
+# 1. sends the published torque calculated BY OPTIMIZER SYSTEM 
+# 2. sends command position and command velocities for the given task (sitting, standing, walking) TO OPTIMIZER SYSTEM --- default is walking
+# 3. establishes the communication between gazebo env and optimizer system 
+ 
 import rclpy
 from miscellaneous import constrain_angle
 import numpy as np
@@ -114,7 +119,7 @@ class SimpleWalker(Node):
 
     def publish_controls(self):
         published_torque = np.array(self.command_torque)
-        published_torque = list(published_torque[[2, 5, 1, 4, 0, 3]])
+        published_torque = list(published_torque)
         return published_torque
 
     def publish_command_position(self):
