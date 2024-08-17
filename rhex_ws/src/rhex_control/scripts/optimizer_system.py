@@ -7,6 +7,11 @@
 # ros2 launch rhex_control walker_node.launch.py
 # ros2 launch rosbridge_server rosbridge_websocket_launch.xml
 # ros2 launch rhex_control optimizer_launcher.launch.py
+
+# RL model mostly based on the paper: 
+# Lee, Daesoo & Lee, Seung & Yim, Solomon. (2020). 
+# Reinforcement learning-based adaptive PID controller for DPS. Ocean Engineering. 216. 10.1016/j.
+# oceaneng.2020.108053.  
  
 import rclpy
 from rclpy.clock import Clock
