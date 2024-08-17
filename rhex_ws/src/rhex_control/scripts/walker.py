@@ -120,13 +120,13 @@ class SimpleWalker(Node):
     def publish_command_position(self):
         cmdpos = np.array(self.cmd_pos)
         position = Float64MultiArray()
-        position.data = list(cmdpos[[2, 5, 1, 4, 0, 3]])
+        position.data = list(cmdpos)
         return position   
     
     def publish_command_velocity(self):
         cmdvel = np.array(self.cmd_vel)
         velocity = Float64MultiArray()
-        velocity.data = list(cmdvel[[2, 5, 1, 4, 0, 3]])
+        velocity.data = list(cmdvel)
         return velocity   
     
     def publish_current_position(self):
