@@ -28,7 +28,7 @@ install(
 
 install(
   PROGRAMS
-    scripts/optimizer_node.py
+    scripts/optimizer_system.py
   DESTINATION
     lib/${PROJECT_NAME}
 )
