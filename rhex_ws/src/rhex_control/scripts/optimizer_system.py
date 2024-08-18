@@ -218,7 +218,7 @@ class OptimizerSystem:
         self.u[self.k] = u        
         
         # updates 
-        self.x[self.k + 1] = np.array([[self.command_position, self.command_velocity], [self.current_position,  self.current_velocity], [self.previous_position, self.previous_velocity]])
+        self.x[self.k + 1] = np.array([[self.command_position, self.command_velocity], [self.current_position,  self.current_velocity], self.y[self.k]])
         self.y[self.k + 1] = np.array([self.current_position, self.current_velocity])
         self.r[self.k + 1]= np.array([self.command_position, self.command_velocity])
         
