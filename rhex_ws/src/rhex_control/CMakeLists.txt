@@ -33,6 +33,12 @@ install(
     lib/${PROJECT_NAME}
 )
 
+install(
+  PROGRAMS
+    scripts/efficient_optimizer_system.py
+  DESTINATION
+    lib/${PROJECT_NAME}
+)
 
 install(
     DIRECTORY
