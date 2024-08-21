@@ -26,7 +26,7 @@ class SimpleWalker(Node):
         
         
         # declared parameters for communicating with the terminal 
-        self.declare_parameter('state', 3)
+        self.declare_parameter('state', 2)
         self.declare_parameter('walker_enable', True)
         self.declare_parameter('cmd_tau', [0.0]*6)
         self.declare_parameter('cmd_vel', [0.0]*6)
@@ -39,7 +39,7 @@ class SimpleWalker(Node):
         
         # variables 
         self.walker_enable = False
-        self.state = 1
+        self.state = 2
         self.cmd_tau = [0.0] * 6 
         self.cmd_pos = [0.0] * 6
         self.cmd_vel = [0.0] * 6
@@ -190,18 +190,18 @@ class SimpleWalker(Node):
                 elapsed_duration = self.get_clock().now() - self.stand_start_time[i]
                 t [i] = (elapsed_duration.nanoseconds /1e9)
             
-            if t[i] < t_c:
-                if self.start_standing [i]: 
-                    self.b [i] = self.currPos [i] 
-                    self.a [i] = -self.currPos [i] / t_c 
-                    self.start_standing [i] = False 
-                    
-                self.cmd_pos[i] = self.a[i] * t [i] + self.b[i] 
-                self.cmd_vel[i] = self.a[i]
-            else: 
-                self.cmd_pos[i] = 0.0
-                self.cmd_vel[i] = 0.0
-                self.start_standing [i] = True 
+                if t[i] < t_c:
+                    if self.start_standing [i]: 
+                        self.b [i] = self.currPos [i] 
+                        self.a [i] = -self.currPos [i] / t_c 
+                        self.start_standing [i] = False 
+                        
+                    self.cmd_pos[i] = self.a[i] * t [i] + self.b[i] 
+                    self.cmd_vel[i] = self.a[i]
+                else: 
+                    self.cmd_pos[i] = 0.0
+                    self.cmd_vel[i] = 0.0
+                    self.start_standing [i] = True 
 
     def simple_walk (self):
         
