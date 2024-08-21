@@ -12,7 +12,7 @@
 # Lee, Daesoo & Lee, Seung & Yim, Solomon. (2020). 
 # Reinforcement learning-based adaptive PID controller for DPS. Ocean Engineering. 216. 10.1016/j.
 # oceaneng.2020.108053.  
- 
+
 import rclpy
 from rclpy.clock import Clock
 import rclpy.parameter
@@ -201,6 +201,8 @@ class OptimizerSystem:
         
     def step(self, Kp, Kd, mode = "train"):
         
+        if self.k % 500 == 0 and mode == "test":
+            print("Kp: ", Kp, " , Kd: ", Kd)
         # output of the optimization system 
         self.input[self.k] = np.array([Kp, Kd])
         
@@ -262,7 +264,7 @@ class GymSystem(gym.Env):
         
         self.n_states = (3, 2, 6)
         self.observation_space = spaces.Box(
-            low=-100.0, high=100.0, shape=self.n_states, dtype=np.float32
+            low=-10.0, high=10.0, shape=self.n_states, dtype=np.float32
         )
        
     def convert_state(self):
@@ -294,7 +296,7 @@ class GymSystem(gym.Env):
         e = obs[0] - obs[1] 
         sum_abs_e = np.sum(np.abs(e))  # Sum of absolute errors
     
-        scale = 1e-3
+        scale = 1e-2
         e_squared = scale * np.abs(e) ** 2
         #e_squared = np.abs(e) ** 2
         #e_squared = np.minimum(e_squared, 5.0)
