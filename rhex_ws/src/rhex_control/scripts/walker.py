@@ -26,7 +26,7 @@ class SimpleWalker(Node):
         
         
         # declared parameters for communicating with the terminal 
-        self.declare_parameter('state', 2)
+        self.declare_parameter('state', 3) # walking 
         self.declare_parameter('walker_enable', True)
         self.declare_parameter('cmd_tau', [0.0]*6)
         self.declare_parameter('cmd_vel', [0.0]*6)
@@ -212,10 +212,9 @@ class SimpleWalker(Node):
         elapsed_duration = ((current_time- self.start_time)) 
         elapsed_time = elapsed_duration.nanoseconds /1e9
          
-        t_c = 1.0
-        t_s = 0.5 
-        t_c = 1.0
-        t_s = 0.5 
+         
+        t_c = 2.0
+        t_s = 1.0 
         t_f = t_c - t_s
         t_d = 0.01 
         phi_s = 0.6
