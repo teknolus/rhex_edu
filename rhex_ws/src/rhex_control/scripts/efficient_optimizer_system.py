@@ -40,7 +40,6 @@ from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecCheckNan, VecNormalize
 
-import threading
 import roslibpy
 
 # initial torque value 
@@ -201,7 +200,7 @@ class OptimizerSystem:
         
     def step(self, Kp, Kd, mode = "train"):
         
-        if self.k % 500 == 0 and mode == "test":
+        if self.k % 10 == 0 and mode == "test":
             print("Kp: ", Kp, " , Kd: ", Kd)
         # output of the optimization system 
         self.input[self.k] = np.array([Kp, Kd])
@@ -374,9 +373,9 @@ class Config:
     model = "OptimizerSystem"
     algo = "PPO"
     logdir = "logs"
-    action_repeat = 2
+    action_repeat = 5
     vec_normalize = True
-    early_stopping = True
+    early_stopping = False
     mode = "train"  # Change to "test" when you want to test the model
 
 def run_rl_training(system):
@@ -463,9 +462,7 @@ def main(args=None):
     
     if Config.mode == "train":
         # Training thread
-        rl_thread = threading.Thread(target=run_rl_training, args=(opt_sys,))
-        rl_thread.start()
-        rl_thread.join()
+        run_rl_training(opt_sys,)
     
     elif Config.mode == "test":
         model = PPO.load(os.path.join("logs/Rhex_state_10/Rhex_state_10_Constant_Zero_Command_OptimizerSystem_PPO_AR_True_use_sde_False_ES_True_extra_BetterES_SystemFix/", "best_model"))  
